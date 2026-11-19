@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=Noto+Nastaliq+Urdu:wght@400;700&display=swap">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="theme-color" content="#0f5132">
@@ -48,7 +49,7 @@ label{display:block;font-weight:600;font-size:14px;margin:10px 0 4px}
 <p><button class="btn" style="width:100%" data-a="login">Login</button></p>
 </div>
 <div id="shell" hidden>
-<header><b id="ttl">SR Wholesale Mart</b><span><button data-a="backup">⬇ Backup</button><button data-a="logout">Logout</button></span></header>
+<header><b id="ttl">SR Wholesale Mart</b><span><button data-a="shopf">🏪</button><button data-a="backup">⬇ Backup</button><button data-a="logout">Logout</button></span></header>
 <main id="app"></main>
 <nav><button data-a="tab" data-v="items">Maal</button><button data-a="tab" data-v="sup">Party</button><button data-a="tab" data-v="cus">Udhaar</button><button data-a="tab" data-v="sale">Sale</button><button data-a="tab" data-v="exp">Kharche</button><button data-a="tab" data-v="rep">Report</button></nav>
 </div>
@@ -104,7 +105,7 @@ var tot=0,paid=0,last={};
 a[0].forEach(function(p){p.purchase_lines.forEach(function(l){tot+=l.qty*l.rate;if(!last[l.item_id])last[l.item_id]={n:l.items.name,r:l.rate,d:p.purchase_date}})});
 a[1].forEach(function(p){paid+=Number(p.amount)});
 SD={id:id,last:last,s:s,pur:a[0],pay:a[1],tot:tot,paid:paid};var bal=tot-paid;
-$("app").innerHTML='<button class="btn g" data-a="back">‹ Wapas</button> <button class="btn g" data-a="pedit" data-t="suppliers" data-id="'+id+'">Edit</button><div class="card"><div class="row"><div><b style="font-size:18px">'+esc(s.name)+'</b><div class="mute">'+esc(s.phone||"")+'</div></div></div><div class="row" style="margin-top:8px"><div><div class="mute">Kul khareedari</div><b>'+rs(tot)+'</b></div><div><div class="mute">Adaigi</div><b>'+rs(paid)+'</b></div><div><div class="mute">Baqi (dene hain)</div><div class="big '+(bal>0?"red":"grn")+'">'+rs(bal)+'</div></div></div></div><div class="row"><button class="btn" data-a="purf">+ Khareedari</button><button class="btn g" data-a="payf">+ Adaigi</button></div><p><button class="btn" style="width:100%;background:#25d366;color:#05260f" data-a="swa">WhatsApp par hisaab bhejein</button></p>'+
+$("app").innerHTML='<button class="btn g" data-a="back">‹ Wapas</button> <button class="btn g" data-a="pedit" data-t="suppliers" data-id="'+id+'">Edit</button><div class="card"><div class="row"><div><b style="font-size:18px">'+esc(s.name)+'</b><div class="mute">'+esc(s.phone||"")+'</div></div></div><div class="row" style="margin-top:8px"><div><div class="mute">Kul khareedari</div><b>'+rs(tot)+'</b></div><div><div class="mute">Adaigi</div><b>'+rs(paid)+'</b></div><div><div class="mute">Baqi (dene hain)</div><div class="big '+(bal>0?"red":"grn")+'">'+rs(bal)+'</div></div></div></div><div class="row"><button class="btn" data-a="purf">+ Khareedari</button><button class="btn g" data-a="payf">+ Adaigi</button></div><div class="row" style="margin:10px 0"><button class="btn" style="background:#25d366;color:#05260f" data-a="stpdf" data-k="s">📄 PDF bhejein</button><button class="btn g" data-a="sttxt" data-k="s">💬 Text message</button></div>'+
 '<h3>Pichla rate</h3>'+(Object.keys(last).map(function(k){var x=last[k];return '<div class="card row"><span>'+esc(x.n)+'</span><span><b>'+rs(x.r)+'</b> <span class="mute">'+x.d+'</span></span></div>'}).join("")||'<p class="mute">Abhi koi khareedari nahi.</p>')+
 '<h3>Khareedari ki tareekh</h3>'+a[0].map(function(p){var t=p.purchase_lines.reduce(function(z,l){return z+l.qty*l.rate},0);return '<div class="card"><div class="row"><b>'+p.purchase_date+'</b><b>'+rs(t)+'</b></div>'+p.purchase_lines.map(function(l){return '<div class="mute">'+esc(l.items.name)+' · '+l.qty+' × '+rs(l.rate)+'</div>'}).join("")+(p.note?'<div class="mute">'+esc(p.note)+'</div>':"")+'<button class="btn g" style="margin-top:6px" data-a="delpur" data-id="'+p.id+'">Hatayein</button></div>'}).join("")+
 '<h3>Adaigi ki tareekh</h3>'+a[1].map(function(p){return '<div class="card row"><span>'+p.paid_on+(p.note?' <span class="mute">'+esc(p.note)+'</span>':"")+'</span><span><b>'+rs(Number(p.amount))+'</b> <button class="btn g" data-a="delsp" data-id="'+p.id+'">X</button></span></div>'}).join("")}
@@ -172,7 +173,7 @@ var c=CUS.filter(function(x){return x.id==id})[0];$("app").innerHTML='<p class="
 try{var a=await Promise.all([api("GET","sales?customer_id=eq."+id+"&select=id,sale_date,note,sale_lines(qty,rate,items(name))&order=sale_date.desc,id.desc"),api("GET","customer_payments?customer_id=eq."+id+"&order=paid_on.desc,id.desc")])}catch(e){return err(e)}
 var tot=0,paid=0;a[0].forEach(function(s){s.sale_lines.forEach(function(l){tot+=l.qty*l.rate})});a[1].forEach(function(p){paid+=Number(p.amount)});
 CD={c:c,s:a[0],p:a[1],tot:tot,paid:paid};var b=tot-paid;
-$("app").innerHTML='<button class="btn g" data-a="cback">‹ Wapas</button> <button class="btn g" data-a="pedit" data-t="customers" data-id="'+id+'">Edit</button><div class="card"><b style="font-size:18px">'+esc(c.name)+'</b><div class="mute">'+esc(c.phone||"")+'</div><div class="row" style="margin-top:8px"><div><div class="mute">Kul udhaar</div><b>'+rs(tot)+'</b></div><div><div class="mute">Wapsi</div><b>'+rs(paid)+'</b></div><div><div class="mute">Baqi</div><div class="big '+(b>0?"red":"grn")+'">'+rs(b)+'</div></div></div></div><div class="row"><button class="btn" data-a="salef" data-c="'+id+'">+ Udhaar</button><button class="btn g" data-a="cpayf">+ Wapsi</button></div><p><button class="btn" style="width:100%;background:#25d366;color:#05260f" data-a="cwa">WhatsApp par hisaab bhejein</button></p><h3>Udhaar ki tareekh</h3>'+(a[0].map(sCard).join("")||'<p class="mute">Koi udhaar nahi.</p>')+'<h3>Wapsi ki tareekh</h3>'+(a[1].map(function(p){return '<div class="card row"><span>'+p.paid_on+(p.note?' <span class="mute">'+esc(p.note)+'</span>':"")+'</span><span><b>'+rs(Number(p.amount))+'</b> <button class="btn g" data-a="delcp" data-id="'+p.id+'">X</button></span></div>'}).join("")||'<p class="mute">Koi wapsi nahi.</p>')}
+$("app").innerHTML='<button class="btn g" data-a="cback">‹ Wapas</button> <button class="btn g" data-a="pedit" data-t="customers" data-id="'+id+'">Edit</button><div class="card"><b style="font-size:18px">'+esc(c.name)+'</b><div class="mute">'+esc(c.phone||"")+'</div><div class="row" style="margin-top:8px"><div><div class="mute">Kul udhaar</div><b>'+rs(tot)+'</b></div><div><div class="mute">Wapsi</div><b>'+rs(paid)+'</b></div><div><div class="mute">Baqi</div><div class="big '+(b>0?"red":"grn")+'">'+rs(b)+'</div></div></div></div><div class="row"><button class="btn" data-a="salef" data-c="'+id+'">+ Udhaar</button><button class="btn g" data-a="cpayf">+ Wapsi</button></div><div class="row" style="margin:10px 0"><button class="btn" style="background:#25d366;color:#05260f" data-a="stpdf" data-k="c">📄 PDF bhejein</button><button class="btn g" data-a="sttxt" data-k="c">💬 Text message</button></div><h3>Udhaar ki tareekh</h3>'+(a[0].map(sCard).join("")||'<p class="mute">Koi udhaar nahi.</p>')+'<h3>Wapsi ki tareekh</h3>'+(a[1].map(function(p){return '<div class="card row"><span>'+p.paid_on+(p.note?' <span class="mute">'+esc(p.note)+'</span>':"")+'</span><span><b>'+rs(Number(p.amount))+'</b> <button class="btn g" data-a="delcp" data-id="'+p.id+'">X</button></span></div>'}).join("")||'<p class="mute">Koi wapsi nahi.</p>')}
 function cpayForm(){modal('<h3>Customer ki wapsi</h3><label>Tareekh</label><input id="f1" type="date" value="'+today()+'"><label>Raqam (Rs)</label><input id="f2" type="number" inputmode="numeric"><label>Note (optional)</label><input id="f3"><p><button class="btn" data-a="cpaysave">Save</button> <button class="btn g" data-a="close">Band</button></p>')}
 async function cpaySave(){var m=parseFloat($("f2").value);if(!(m>0))return alert("Raqam likhein.");
 try{await api("POST","customer_payments",{customer_id:CD.c.id,paid_on:$("f1").value,amount:m,note:$("f3").value.trim()||null});closeM();await load2();showCusD(CD.c.id)}catch(e){err(e)}}
@@ -315,8 +316,72 @@ else if(a=="itemdel")itemDel(d.id);
 else if(a=="swa")swa();
 else if(a=="delpur")delPur(d.id);
 else if(a=="delsp")delSP(d.id);
-else if(a=="editsale")editSale(d.id)}
+else if(a=="editsale")editSale(d.id);else x4(a,d)}
 if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(function(){});
+
+var PDFF=null;
+function shop(){var s={};try{s=JSON.parse(localStorage.getItem("srm_shop")||"{}")}catch(e){}return{n:s.n||"Ghousia Traders",a:s.a||"",p:s.p||"0305 1289250"}}
+function shopForm(){var s=shop();modal('<h3>Dukaan ki details (statement ke liye)</h3><label>Dukaan ka naam</label><input id="f1" value="'+esc(s.n)+'"><label>Pata (address)</label><input id="f2" value="'+esc(s.a)+'" placeholder="jaise Shop #, Market, Karachi"><label>Mobile number</label><input id="f3" value="'+esc(s.p)+'"><p class="mute">Ye is device par save hoti hain. Dusre device par bhi ek baar likhni hongi.</p><p><button class="btn" data-a="shopsave">Save</button> <button class="btn g" data-a="close">Band</button></p>')}
+function fmtD(d){return d.slice(8)+"/"+d.slice(5,7)+"/"+d.slice(0,4)}
+function stmtModel(k){
+var r=[],n,p,tot,paid;
+if(k=="c"){n=CD.c.name;p=CD.c.phone;tot=CD.tot;paid=CD.paid;
+CD.s.forEach(function(s){r.push({d:s.sale_date,t:s.sale_lines.map(function(l){return l.items.name+" "+l.qty+" × "+l.rate}).join("; "),a:s.sale_lines.reduce(function(z,l){return z+l.qty*l.rate},0),o:0})});
+CD.p.forEach(function(x){r.push({d:x.paid_on,t:"Payment received"+(x.note?" – "+x.note:""),a:0,o:Number(x.amount)})})}
+else{n=SD.s.name;p=SD.s.phone;tot=SD.tot;paid=SD.paid;
+SD.pur.forEach(function(s){r.push({d:s.purchase_date,t:s.purchase_lines.map(function(l){return l.items.name+" "+l.qty+" × "+l.rate}).join("; "),a:s.purchase_lines.reduce(function(z,l){return z+l.qty*l.rate},0),o:0})});
+SD.pay.forEach(function(x){r.push({d:x.paid_on,t:"Payment made"+(x.note?" – "+x.note:""),a:0,o:Number(x.amount)})})}
+r.sort(function(x,y){return x.d<y.d?-1:x.d>y.d?1:(x.a>0?0:1)-(y.a>0?0:1)});
+var b=0;r.forEach(function(x){b+=x.a-x.o;x.b=b});
+return{k:k,name:n,phone:p,rows:r,tot:tot,paid:paid,bal:tot-paid}}
+function msgU(m){
+if(m.k=="c")return m.bal>0?"آپ کے بھروسے اور تعاون کا بہت شکریہ۔ آپ سے گزارش ہے کہ باقی رقم جلد ادا فرما دیں تاکہ ہم آئندہ بھی آپ کی بہتر خدمت کرتے رہیں۔ جزاک اللہ":"آپ کا حساب مکمل صاف ہے۔ آپ کے تعاون کا بہت شکریہ۔";
+return m.bal>0?"براہِ کرم اپنے ریکارڈ سے ملا لیں، اگر کوئی فرق ہو تو ہمیں ضرور بتائیں۔ آپ کے تعاون کا بہت شکریہ۔":"ہمارے ساتھ آپ کا کوئی حساب باقی نہیں۔ آپ کے تعاون کا بہت شکریہ۔"}
+function stText(m){
+var sh=shop(),c=m.k=="c",L=["السلام علیکم "+m.name+" صاحب،",sh.n+(c?" کی طرف سے آپ کا حساب:":" کی طرف سے آپ کے ساتھ ہمارا حساب:"),""];
+if(m.rows.length>20)L.push("(آخری 20 اندراجات)");
+m.rows.slice(-20).forEach(function(x){L.push(x.a?("• "+fmtD(x.d)+": "+x.t+" = "+rs(x.a)):("✔ "+fmtD(x.d)+(c?" وصولی: ":" ادائیگی: ")+rs(x.o)))});
+L.push("",(c?"کل ادھار: ":"کل مال: ")+rs(m.tot),(c?"کل وصولی: ":"کل ادائیگی: ")+rs(m.paid),"*"+(c?"باقی رقم: ":"ہماری طرف آپ کی باقی رقم: ")+rs(m.bal)+"*","",msgU(m)+" 🌿","",sh.n+(sh.p?" | "+sh.p:""));
+return L.join("\n")}
+function waNum(p){var d=(p||"").replace(/\D/g,"");if(d.charAt(0)=="0")d="92"+d.slice(1);return d}
+function pdfHtml(m){
+var sh=shop(),c=m.k=="c",bc=m.bal>0?"#c0392b":"#1b7a4c",td="padding:8px 10px;border-bottom:1px solid #e3ebe5;font-size:13px;vertical-align:top";
+var rows=m.rows.map(function(x,i){return '<tr style="background:'+(i%2?"#f6faf7":"#fff")+'"><td style="'+td+'">'+fmtD(x.d)+'</td><td style="'+td+'">'+esc(x.t)+'</td><td style="'+td+';text-align:right">'+(x.a?rs(x.a):"")+'</td><td style="'+td+';text-align:right">'+(x.o?rs(x.o):"")+'</td><td style="'+td+';text-align:right;font-weight:700">'+rs(x.b)+'</td></tr>'}).join("");
+var th="padding:9px 10px;text-align:left;font-size:12px;color:#0f5132;background:#e4f1e9";
+var box=function(l,v,col){return '<div style="flex:1;border:1px solid #d3e2d8;border-radius:10px;padding:10px 12px"><div style="font-size:11px;color:#5b6c62">'+l+'</div><div style="font-size:20px;font-weight:800;color:'+(col||"#12241a")+'">'+v+'</div></div>'};
+return '<div style="width:794px;background:#fff;color:#12241a;font-family:\'Plus Jakarta Sans\',system-ui,sans-serif;padding-bottom:20px"><div style="background:#0f5132;color:#fff;padding:26px 34px"><div style="font-size:32px;font-weight:800">'+esc(sh.n)+'</div><div style="font-size:13px;opacity:.9">General &amp; Herbal Wholesale</div><div style="font-size:13px;margin-top:8px">'+(sh.a?'Address: '+esc(sh.a)+' &nbsp;&nbsp; ':"")+'Mobile: '+esc(sh.p)+'</div></div>'+
+'<div style="padding:22px 34px 0"><div style="display:flex;justify-content:space-between;align-items:baseline"><div style="font-size:20px;font-weight:800">Account Statement</div><div style="font-size:13px;color:#5b6c62">Date: '+fmtD(today())+'</div></div>'+
+'<div style="margin:10px 0 14px;font-size:15px">'+(c?"Customer: ":"Supplier: ")+'<b>'+esc(m.name)+'</b>'+(m.phone?' &nbsp; Mobile: '+esc(m.phone):"")+'</div>'+
+'<div style="display:flex;gap:10px;margin-bottom:16px">'+box(c?"Total credit (Udhaar)":"Total purchases",rs(m.tot))+box(c?"Total received":"Total paid",rs(m.paid))+box("Balance due",rs(m.bal),bc)+'</div>'+
+'<table style="width:100%;border-collapse:collapse;border:1px solid #d3e2d8"><thead><tr><th style="'+th+'">Date</th><th style="'+th+'">Details</th><th style="'+th+';text-align:right">'+(c?"Udhaar":"Purchase")+'</th><th style="'+th+';text-align:right">'+(c?"Received":"Paid")+'</th><th style="'+th+';text-align:right">Balance</th></tr></thead><tbody>'+rows+'</tbody></table>'+
+'<div dir="rtl" style="margin-top:20px;background:#f3f8f4;border-right:5px solid #0f5132;border-radius:8px;padding:12px 16px;font-family:\'Noto Nastaliq Urdu\',\'Noto Naskh Arabic\',serif;font-size:15px;line-height:2.3">السلام علیکم '+esc(m.name)+' صاحب،<br>'+msgU(m)+'</div>'+
+'<div style="margin-top:18px;text-align:center;font-size:12px;color:#5b6c62">Thank you for your business · '+esc(sh.n)+' · '+esc(sh.p)+'</div></div></div>'}
+function lib(u){return new Promise(function(ok,no){var s=document.createElement("script");s.src=u;s.onload=ok;s.onerror=function(){no(new Error("Library load nahi hui. Internet check karein."))};document.head.appendChild(s)})}
+async function stPdf(m){
+var sh=shop();if(!sh.a){alert("Pehle dukaan ka pata likhein.");return shopForm()}
+modal('<p>PDF ban raha hai… thora intezar karein.</p>');
+try{
+if(!window.html2canvas)await lib("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js");
+if(!window.jspdf)await lib("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+var el=document.createElement("div");el.style.cssText="position:fixed;left:-10000px;top:0;width:794px";el.innerHTML=pdfHtml(m);document.body.appendChild(el);
+try{await document.fonts.load('16px "Noto Nastaliq Urdu"',"السلام");await document.fonts.ready}catch(e){}
+var cv=await html2canvas(el,{scale:2,backgroundColor:"#ffffff"});el.remove();
+var pdf=new window.jspdf.jsPDF("p","mm","a4"),pw=210,ph=297,pH=Math.floor(cv.width*ph/pw);
+for(var off=0,pg=0;off<cv.height;off+=pH,pg++){var sl=document.createElement("canvas");sl.width=cv.width;sl.height=Math.min(pH,cv.height-off);sl.getContext("2d").drawImage(cv,0,off,cv.width,sl.height,0,0,cv.width,sl.height);if(pg)pdf.addPage();pdf.addImage(sl.toDataURL("image/jpeg",.92),"JPEG",0,0,pw,sl.height*pw/cv.width)}
+var nm=(m.name.replace(/[^A-Za-z0-9]+/g,"-").replace(/^-|-$/g,"")||"party");
+PDFF=new File([pdf.output("blob")],"Hisaab-"+nm+"-"+today()+".pdf",{type:"application/pdf"});PDFF.m=m;
+modal('<h3>PDF tayyar hai ✅</h3><p class="mute">'+esc(PDFF.name)+'</p><p><button class="btn" style="width:100%;background:#25d366;color:#05260f" data-a="pdfshare">📤 Share karein (WhatsApp)</button></p><p><button class="btn g" style="width:100%" data-a="pdfdl">⬇ Download karein</button></p><p><button class="btn g" data-a="close">Band</button></p>')}
+catch(e){closeM();err(e)}}
+async function pdfShare(){
+try{if(navigator.canShare&&navigator.canShare({files:[PDFF]}))await navigator.share({files:[PDFF],title:"Hisaab"});else pdfDl(true)}catch(e){if(!e||e.name!=="AbortError")alert("Share nahi hua, Download use karein.")}}
+function pdfDl(info){var a=document.createElement("a");a.href=URL.createObjectURL(PDFF);a.download=PDFF.name;document.body.appendChild(a);a.click();a.remove();if(info===true)alert("Share is device par available nahi, PDF download ho gayi. Usay WhatsApp mein attach kar ke bhej dein.")}
+function x4(a,d){
+if(a=="shopf")shopForm();
+else if(a=="shopsave"){try{localStorage.setItem("srm_shop",JSON.stringify({n:$("f1").value.trim(),a:$("f2").value.trim(),p:$("f3").value.trim()}))}catch(e){}closeM()}
+else if(a=="stpdf")stPdf(stmtModel(d.k));
+else if(a=="sttxt"){var m=stmtModel(d.k),n=waNum(m.phone);if(!n)return alert("Is ka number nahi likha.");window.open("https://wa.me/"+n+"?text="+encodeURIComponent(stText(m)),"_blank")}
+else if(a=="pdfshare")pdfShare();
+else if(a=="pdfdl")pdfDl()}
 
 boot();
 </script>
