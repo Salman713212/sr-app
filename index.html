@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#0f5132">
 <title>SR Wholesale Mart</title>
 <style>
 :root{--bg:#f3f6f4;--card:#fff;--ink:#12241a;--mute:#5b6c62;--brand:#0f5132;--b2:#1b7a4c;--line:#dbe5de;--red:#c0392b;--gold:#e8b21a}
@@ -78,15 +82,15 @@ function show(){
 document.querySelectorAll("nav button").forEach(function(b){b.className=b.dataset.v==T&&!CUR?"on":""});
 if(CUR)return showSup(CUR);if(CC)return showCusD(CC);if(T=="cus")return showCus();if(T=="sale")return showSale();if(T=="exp")return showExp();if(T=="rep")return showRep();
 var h="";
-if(T=="items"){h='<div class="row"><h2>Maal ('+ITEMS.length+')</h2><button class="btn" data-a="itemf">+ Naya item</button></div>'+ITEMS.map(function(i){return '<div class="card row"><div><b>'+esc(i.name)+'</b><div class="mute">'+esc(i.category||"")+' · 1 cotton = '+i.boxes_per_cotton+' '+esc(i.unit)+' · <b>Stock: '+(STK[i.id]||0)+'</b></div></div><button class="btn g" data-a="itemf" data-id="'+i.id+'">Edit</button></div>'}).join("")||'<p class="mute">Abhi koi item nahi. + Naya item dabayein.</p>'}
+if(T=="items"){h=alerts()+'<div class="row"><h2>Maal ('+ITEMS.length+')</h2><button class="btn" data-a="itemf">+ Naya item</button></div>'+ITEMS.map(function(i){return '<div class="card row"><div><b>'+esc(i.name)+'</b><div class="mute">'+esc(i.category||"")+' · 1 cotton = '+i.boxes_per_cotton+' '+esc(i.unit)+' · <b>Stock: '+(STK[i.id]||0)+'</b></div></div><button class="btn g" data-a="itemf" data-id="'+i.id+'">Edit</button></div>'}).join("")||'<p class="mute">Abhi koi item nahi. + Naya item dabayein.</p>'}
 else if(T=="sup"){h='<div class="row"><h2>Suppliers ('+SUPS.length+')</h2><button class="btn" data-a="pf" data-t="suppliers">+ Naya</button></div>'+SUPS.map(function(s){return '<div class="card row" data-a="sup" data-id="'+s.id+'"><div><b>'+esc(s.name)+'</b><div class="mute">'+esc(s.phone||"")+'</div></div><span class="'+((SB[s.id]||0)>0?"red":"grn")+'"><b>'+rs(SB[s.id]||0)+'</b> ›</span></div>'}).join("")||'<p class="mute">Abhi koi supplier nahi.</p>'}
 else{h='<div class="row"><h2>Customers ('+CUS.length+')</h2><button class="btn" data-a="pf" data-t="customers">+ Naya</button></div>'+CUS.map(function(s){return '<div class="card"><b>'+esc(s.name)+'</b><div class="mute">'+esc(s.phone||"")+'</div></div>'}).join("")+'<p class="mute">Udhaar ka hisaab agle version mein aayega.</p>'}
 $("app").innerHTML=h}
 function itemForm(id){
-var i=ITEMS.filter(function(x){return x.id==id})[0]||{name:"",category:"",unit:"box",boxes_per_cotton:1};
-modal('<h3>'+(id?"Item badlein":"Naya item")+'</h3><label>Naam</label><input id="f1" value="'+esc(i.name)+'"><label>Category</label><input id="f2" value="'+esc(i.category||"")+'"><label>Unit (box)</label><input id="f3" value="'+esc(i.unit)+'"><label>Cotton mein kitne box</label><input id="f4" type="number" inputmode="numeric" value="'+i.boxes_per_cotton+'"><p><button class="btn" data-a="itemsave" data-id="'+(id||"")+'">Save</button> <button class="btn g" data-a="close">Band</button></p>')}
+var i=ITEMS.filter(function(x){return x.id==id})[0]||{name:"",category:"",unit:"box",boxes_per_cotton:1,min_stock:0};
+modal('<h3>'+(id?"Item badlein":"Naya item")+'</h3><label>Naam</label><input id="f1" value="'+esc(i.name)+'"><label>Category</label><input id="f2" value="'+esc(i.category||"")+'"><label>Unit (box)</label><input id="f3" value="'+esc(i.unit)+'"><label>Cotton mein kitne box</label><input id="f4" type="number" inputmode="numeric" value="'+i.boxes_per_cotton+'"><label>Kam az kam stock (is se kam ho to alert)</label><input id="f5" type="number" inputmode="numeric" value="'+(i.min_stock||0)+'"><p><button class="btn" data-a="itemsave" data-id="'+(id||"")+'">Save</button>'+(id?' <button class="btn r" data-a="itemdel" data-id="'+id+'">Hatayein</button>':"")+' <button class="btn g" data-a="close">Band</button></p>')}
 async function itemSave(id){
-var b={name:$("f1").value.trim(),category:$("f2").value.trim()||null,unit:$("f3").value.trim()||"box",boxes_per_cotton:parseInt($("f4").value)||1};
+var b={name:$("f1").value.trim(),category:$("f2").value.trim()||null,unit:$("f3").value.trim()||"box",boxes_per_cotton:parseInt($("f4").value)||1,min_stock:parseFloat($("f5").value)||0};
 if(!b.name)return alert("Naam likhein.");
 try{if(id)await api("PATCH","items?id=eq."+id,b);else await api("POST","items",b);closeM();await load();show()}catch(e){err(e)}}
 function pform(t){modal('<h3>Naya '+(t=="suppliers"?"supplier":"customer")+'</h3><label>Naam</label><input id="f1"><label>Phone (92 ke saath)</label><input id="f2" type="tel" inputmode="numeric"><p><button class="btn" data-a="psave" data-t="'+t+'">Save</button> <button class="btn g" data-a="close">Band</button></p>')}
@@ -99,14 +103,14 @@ try{var a=await Promise.all([api("GET","purchases?supplier_id=eq."+id+"&select=i
 var tot=0,paid=0,last={};
 a[0].forEach(function(p){p.purchase_lines.forEach(function(l){tot+=l.qty*l.rate;if(!last[l.item_id])last[l.item_id]={n:l.items.name,r:l.rate,d:p.purchase_date}})});
 a[1].forEach(function(p){paid+=Number(p.amount)});
-SD={id:id,last:last};var bal=tot-paid;
-$("app").innerHTML='<button class="btn g" data-a="back">‹ Wapas</button><div class="card"><div class="row"><div><b style="font-size:18px">'+esc(s.name)+'</b><div class="mute">'+esc(s.phone||"")+'</div></div></div><div class="row" style="margin-top:8px"><div><div class="mute">Kul khareedari</div><b>'+rs(tot)+'</b></div><div><div class="mute">Adaigi</div><b>'+rs(paid)+'</b></div><div><div class="mute">Baqi (dene hain)</div><div class="big '+(bal>0?"red":"grn")+'">'+rs(bal)+'</div></div></div></div><div class="row"><button class="btn" data-a="purf">+ Khareedari</button><button class="btn g" data-a="payf">+ Adaigi</button></div>'+
+SD={id:id,last:last,s:s,pur:a[0],pay:a[1],tot:tot,paid:paid};var bal=tot-paid;
+$("app").innerHTML='<button class="btn g" data-a="back">‹ Wapas</button> <button class="btn g" data-a="pedit" data-t="suppliers" data-id="'+id+'">Edit</button><div class="card"><div class="row"><div><b style="font-size:18px">'+esc(s.name)+'</b><div class="mute">'+esc(s.phone||"")+'</div></div></div><div class="row" style="margin-top:8px"><div><div class="mute">Kul khareedari</div><b>'+rs(tot)+'</b></div><div><div class="mute">Adaigi</div><b>'+rs(paid)+'</b></div><div><div class="mute">Baqi (dene hain)</div><div class="big '+(bal>0?"red":"grn")+'">'+rs(bal)+'</div></div></div></div><div class="row"><button class="btn" data-a="purf">+ Khareedari</button><button class="btn g" data-a="payf">+ Adaigi</button></div><p><button class="btn" style="width:100%;background:#25d366;color:#05260f" data-a="swa">WhatsApp par hisaab bhejein</button></p>'+
 '<h3>Pichla rate</h3>'+(Object.keys(last).map(function(k){var x=last[k];return '<div class="card row"><span>'+esc(x.n)+'</span><span><b>'+rs(x.r)+'</b> <span class="mute">'+x.d+'</span></span></div>'}).join("")||'<p class="mute">Abhi koi khareedari nahi.</p>')+
-'<h3>Khareedari ki tareekh</h3>'+a[0].map(function(p){var t=p.purchase_lines.reduce(function(z,l){return z+l.qty*l.rate},0);return '<div class="card"><div class="row"><b>'+p.purchase_date+'</b><b>'+rs(t)+'</b></div>'+p.purchase_lines.map(function(l){return '<div class="mute">'+esc(l.items.name)+' · '+l.qty+' × '+rs(l.rate)+'</div>'}).join("")+(p.note?'<div class="mute">'+esc(p.note)+'</div>':"")+'</div>'}).join("")+
-'<h3>Adaigi ki tareekh</h3>'+a[1].map(function(p){return '<div class="card row"><span>'+p.paid_on+(p.note?' <span class="mute">'+esc(p.note)+'</span>':"")+'</span><b>'+rs(Number(p.amount))+'</b></div>'}).join("")}
+'<h3>Khareedari ki tareekh</h3>'+a[0].map(function(p){var t=p.purchase_lines.reduce(function(z,l){return z+l.qty*l.rate},0);return '<div class="card"><div class="row"><b>'+p.purchase_date+'</b><b>'+rs(t)+'</b></div>'+p.purchase_lines.map(function(l){return '<div class="mute">'+esc(l.items.name)+' · '+l.qty+' × '+rs(l.rate)+'</div>'}).join("")+(p.note?'<div class="mute">'+esc(p.note)+'</div>':"")+'<button class="btn g" style="margin-top:6px" data-a="delpur" data-id="'+p.id+'">Hatayein</button></div>'}).join("")+
+'<h3>Adaigi ki tareekh</h3>'+a[1].map(function(p){return '<div class="card row"><span>'+p.paid_on+(p.note?' <span class="mute">'+esc(p.note)+'</span>':"")+'</span><span><b>'+rs(Number(p.amount))+'</b> <button class="btn g" data-a="delsp" data-id="'+p.id+'">X</button></span></div>'}).join("")}
 function payForm(){modal('<h3>Supplier ko adaigi</h3><label>Tareekh</label><input id="f1" type="date" value="'+today()+'"><label>Raqam (Rs)</label><input id="f2" type="number" inputmode="numeric"><label>Note (optional)</label><input id="f3"><p><button class="btn" data-a="paysave">Save</button> <button class="btn g" data-a="close">Band</button></p>')}
 async function paySave(){var m=parseFloat($("f2").value);if(!(m>0))return alert("Raqam likhein.");
-try{await api("POST","supplier_payments",{supplier_id:SD.id,paid_on:$("f1").value,amount:m,note:$("f3").value.trim()||null});closeM();showSup(SD.id)}catch(e){err(e)}}
+try{await api("POST","supplier_payments",{supplier_id:SD.id,paid_on:$("f1").value,amount:m,note:$("f3").value.trim()||null});closeM();await load2();showSup(SD.id)}catch(e){err(e)}}
 function lineRow(){return '<div class="card pl"><select data-a="pick"><option value="">Item chunein</option>'+ITEMS.map(function(i){return '<option value="'+i.id+'">'+esc(i.name)+'</option>'}).join("")+'</select><div class="g3" style="margin-top:6px"><input class="q" type="number" inputmode="decimal" placeholder="Quantity"><input class="r" type="number" inputmode="decimal" placeholder="Rate"><input class="x" type="date" title="Expiry"></div></div>'}
 function purForm(){if(!ITEMS.length)return alert("Pehle Maal tab mein items add karein.");
 modal('<h3>Nayi khareedari</h3><label>Tareekh</label><input id="f1" type="date" value="'+today()+'"><label>Note (optional)</label><input id="f3"><div id="pls">'+lineRow()+'</div><p class="mute">Quantity box mein, rate ek box ka, expiry khali chhor sakte hain.</p><p><button class="btn g" data-a="addline">+ Aur item</button></p><p><button class="btn" data-a="pursave">Save</button> <button class="btn g" data-a="close">Band</button></p>')}
@@ -116,7 +120,7 @@ if(!ls.length||ls.some(function(l){return !l.item_id||!(l.qty>0)||!(l.rate>=0)})
 var p;
 try{p=(await api("POST","purchases",{supplier_id:SD.id,purchase_date:$("f1").value,note:$("f3").value.trim()||null}))[0];
 try{await api("POST","purchase_lines",ls.map(function(l){return{purchase_id:p.id,item_id:l.item_id,qty:l.qty,rate:l.rate,qty_left:l.qty,expiry_date:l.exp||null}}))}catch(e){await api("DELETE","purchases?id=eq."+p.id).catch(function(){});throw e}
-closeM();showSup(SD.id)}catch(e){err(e)}}
+closeM();await load2();showSup(SD.id)}catch(e){err(e)}}
 async function backup(){
 var tb=["items","suppliers","customers","purchases","purchase_lines","supplier_payments","customer_payments","sales","sale_lines","expenses"],o={saved_at:new Date().toISOString()};
 try{for(var i=0;i<tb.length;i++)o[tb[i]]=await api("GET",tb[i]+"?select=*");
@@ -149,9 +153,9 @@ var CC=null,STK={},CB={},SB={},LSR={},CD=null,SALEC=null,RP={m:"d",d:today()};
 function bal(n){return '<span class="'+(n>0?"red":"grn")+'"><b>'+rs(n)+'</b></span>'}
 function srt(x,y){var a=x.purchases.purchase_date,b=y.purchases.purchase_date;return a<b?-1:a>b?1:x.id-y.id}
 async function load2(){
-var a=await Promise.all([api("GET","purchase_lines?select=item_id,qty_left"),api("GET","sales?customer_id=not.is.null&select=customer_id,sale_lines(qty,rate)"),api("GET","customer_payments?select=customer_id,amount"),api("GET","purchases?select=supplier_id,purchase_lines(qty,rate)"),api("GET","supplier_payments?select=supplier_id,amount"),api("GET","sale_lines?select=item_id,rate&order=id.desc&limit=300")]);
+var a=await Promise.all([api("GET","purchase_lines?select=item_id,qty_left,expiry_date,items(name)"),api("GET","sales?customer_id=not.is.null&select=customer_id,sale_lines(qty,rate)"),api("GET","customer_payments?select=customer_id,amount"),api("GET","purchases?select=supplier_id,purchase_lines(qty,rate)"),api("GET","supplier_payments?select=supplier_id,amount"),api("GET","sale_lines?select=item_id,rate&order=id.desc&limit=300")]);
 STK={};CB={};SB={};LSR={};
-a[0].forEach(function(l){STK[l.item_id]=(STK[l.item_id]||0)+Number(l.qty_left)});
+a[0].forEach(function(l){STK[l.item_id]=(STK[l.item_id]||0)+Number(l.qty_left)});EXP=a[0].filter(function(l){return Number(l.qty_left)>0&&l.expiry_date}).sort(function(x,y){return x.expiry_date<y.expiry_date?-1:1});
 a[1].forEach(function(s){s.sale_lines.forEach(function(l){CB[s.customer_id]=(CB[s.customer_id]||0)+l.qty*l.rate})});
 a[2].forEach(function(p){CB[p.customer_id]=(CB[p.customer_id]||0)-Number(p.amount)});
 a[3].forEach(function(s){s.purchase_lines.forEach(function(l){SB[s.supplier_id]=(SB[s.supplier_id]||0)+l.qty*l.rate})});
@@ -162,13 +166,13 @@ var tot=0;CUS.forEach(function(c){tot+=(CB[c.id]||0)});
 $("app").innerHTML='<div class="row"><h2>Customers ('+CUS.length+')</h2><button class="btn" data-a="pf" data-t="customers">+ Naya</button></div><div class="card"><div class="mute">Kul udhaar baqi</div><div class="big '+(tot>0?"red":"grn")+'">'+rs(tot)+'</div></div>'+CUS.map(function(c){return '<div class="card row" data-a="cus" data-id="'+c.id+'"><div><b>'+esc(c.name)+'</b><div class="mute">'+esc(c.phone||"")+'</div></div>'+bal(CB[c.id]||0)+'</div>'}).join("")}
 function sCard(s,del){
 var t=s.sale_lines.reduce(function(z,l){return z+l.qty*l.rate},0);
-return '<div class="card"><div class="row"><b>'+s.sale_date+'</b><b>'+rs(t)+'</b></div>'+s.sale_lines.map(function(l){return '<div class="mute">'+esc(l.items.name)+' · '+l.qty+' × '+rs(l.rate)+'</div>'}).join("")+(s.note?'<div class="mute">'+esc(s.note)+'</div>':"")+'<button class="btn g" style="margin-top:6px" data-a="delsale" data-id="'+s.id+'">Hatayein</button></div>'}
+return '<div class="card"><div class="row"><b>'+s.sale_date+'</b><b>'+rs(t)+'</b></div>'+s.sale_lines.map(function(l){return '<div class="mute">'+esc(l.items.name)+' · '+l.qty+' × '+rs(l.rate)+'</div>'}).join("")+(s.note?'<div class="mute">'+esc(s.note)+'</div>':"")+'<button class="btn g" style="margin-top:6px" data-a="editsale" data-id="'+s.id+'">Badlein</button> <button class="btn g" style="margin-top:6px" data-a="delsale" data-id="'+s.id+'">Hatayein</button></div>'}
 async function showCusD(id){
 var c=CUS.filter(function(x){return x.id==id})[0];$("app").innerHTML='<p class="mute">Load ho raha hai…</p>';
 try{var a=await Promise.all([api("GET","sales?customer_id=eq."+id+"&select=id,sale_date,note,sale_lines(qty,rate,items(name))&order=sale_date.desc,id.desc"),api("GET","customer_payments?customer_id=eq."+id+"&order=paid_on.desc,id.desc")])}catch(e){return err(e)}
 var tot=0,paid=0;a[0].forEach(function(s){s.sale_lines.forEach(function(l){tot+=l.qty*l.rate})});a[1].forEach(function(p){paid+=Number(p.amount)});
 CD={c:c,s:a[0],p:a[1],tot:tot,paid:paid};var b=tot-paid;
-$("app").innerHTML='<button class="btn g" data-a="cback">‹ Wapas</button><div class="card"><b style="font-size:18px">'+esc(c.name)+'</b><div class="mute">'+esc(c.phone||"")+'</div><div class="row" style="margin-top:8px"><div><div class="mute">Kul udhaar</div><b>'+rs(tot)+'</b></div><div><div class="mute">Wapsi</div><b>'+rs(paid)+'</b></div><div><div class="mute">Baqi</div><div class="big '+(b>0?"red":"grn")+'">'+rs(b)+'</div></div></div></div><div class="row"><button class="btn" data-a="salef" data-c="'+id+'">+ Udhaar</button><button class="btn g" data-a="cpayf">+ Wapsi</button></div><p><button class="btn" style="width:100%;background:#25d366;color:#05260f" data-a="cwa">WhatsApp par hisaab bhejein</button></p><h3>Udhaar ki tareekh</h3>'+(a[0].map(sCard).join("")||'<p class="mute">Koi udhaar nahi.</p>')+'<h3>Wapsi ki tareekh</h3>'+(a[1].map(function(p){return '<div class="card row"><span>'+p.paid_on+(p.note?' <span class="mute">'+esc(p.note)+'</span>':"")+'</span><span><b>'+rs(Number(p.amount))+'</b> <button class="btn g" data-a="delcp" data-id="'+p.id+'">X</button></span></div>'}).join("")||'<p class="mute">Koi wapsi nahi.</p>')}
+$("app").innerHTML='<button class="btn g" data-a="cback">‹ Wapas</button> <button class="btn g" data-a="pedit" data-t="customers" data-id="'+id+'">Edit</button><div class="card"><b style="font-size:18px">'+esc(c.name)+'</b><div class="mute">'+esc(c.phone||"")+'</div><div class="row" style="margin-top:8px"><div><div class="mute">Kul udhaar</div><b>'+rs(tot)+'</b></div><div><div class="mute">Wapsi</div><b>'+rs(paid)+'</b></div><div><div class="mute">Baqi</div><div class="big '+(b>0?"red":"grn")+'">'+rs(b)+'</div></div></div></div><div class="row"><button class="btn" data-a="salef" data-c="'+id+'">+ Udhaar</button><button class="btn g" data-a="cpayf">+ Wapsi</button></div><p><button class="btn" style="width:100%;background:#25d366;color:#05260f" data-a="cwa">WhatsApp par hisaab bhejein</button></p><h3>Udhaar ki tareekh</h3>'+(a[0].map(sCard).join("")||'<p class="mute">Koi udhaar nahi.</p>')+'<h3>Wapsi ki tareekh</h3>'+(a[1].map(function(p){return '<div class="card row"><span>'+p.paid_on+(p.note?' <span class="mute">'+esc(p.note)+'</span>':"")+'</span><span><b>'+rs(Number(p.amount))+'</b> <button class="btn g" data-a="delcp" data-id="'+p.id+'">X</button></span></div>'}).join("")||'<p class="mute">Koi wapsi nahi.</p>')}
 function cpayForm(){modal('<h3>Customer ki wapsi</h3><label>Tareekh</label><input id="f1" type="date" value="'+today()+'"><label>Raqam (Rs)</label><input id="f2" type="number" inputmode="numeric"><label>Note (optional)</label><input id="f3"><p><button class="btn" data-a="cpaysave">Save</button> <button class="btn g" data-a="close">Band</button></p>')}
 async function cpaySave(){var m=parseFloat($("f2").value);if(!(m>0))return alert("Raqam likhein.");
 try{await api("POST","customer_payments",{customer_id:CD.c.id,paid_on:$("f1").value,amount:m,note:$("f3").value.trim()||null});closeM();await load2();showCusD(CD.c.id)}catch(e){err(e)}}
@@ -181,9 +185,9 @@ ev.sort(function(x,y){return x.d<y.d?-1:x.d>y.d?1:0});var skip=ev.length>20;ev=e
 var m="Assalam o Alaikum "+c.name+",\nGhousia Traders ki taraf se aap ka hisaab:\n\n"+(skip?"(aakhri 20 entries)\n":"")+ev.map(function(x){return x.t}).join("\n")+"\n\nKul udhaar: "+rs(CD.tot)+"\nKul wapsi: "+rs(CD.paid)+"\n*Baqi: "+rs(CD.tot-CD.paid)+"*\n\nShukriya.";
 window.open("https://wa.me/"+d+"?text="+encodeURIComponent(m),"_blank")}
 function sRow(){return '<div class="card pl"><select data-a="spick"><option value="">Item chunein</option>'+ITEMS.map(function(i){return '<option value="'+i.id+'">'+esc(i.name)+'</option>'}).join("")+'</select><div class="g3" style="grid-template-columns:1fr 1fr;margin-top:6px"><input class="q" type="number" inputmode="decimal" placeholder="Quantity"><input class="r" type="number" inputmode="decimal" placeholder="Rate"></div><div class="mute hint"></div></div>'}
-function saleForm(c){
-if(!ITEMS.length)return alert("Pehle Maal tab mein items add karein.");SALEC=c||null;
-modal('<h3>'+(c?"Udhaar entry":"Walk-in sale (din ka total)")+'</h3><label>Tareekh</label><input id="f1" type="date" value="'+today()+'"><label>Note (optional)</label><input id="f3"><div id="pls">'+sRow()+'</div><p><button class="btn g" data-a="addsrow">+ Aur item</button></p><p class="mute">Ek hi item alag rate par bika ho to alag line likhein.</p><p><button class="btn" data-a="salesave">Save</button> <button class="btn g" data-a="close">Band</button></p>')}
+function saleForm(c,pre){
+if(!ITEMS.length)return alert("Pehle Maal tab mein items add karein.");SALEC=c||null;EDIT=pre?pre.id:null;EDITQ={};if(pre)pre.lines.forEach(function(l){EDITQ[l.item_id]=(EDITQ[l.item_id]||0)+Number(l.qty)});
+modal('<h3>'+(c?"Udhaar entry":"Walk-in sale (din ka total)")+'</h3><label>Tareekh</label><input id="f1" type="date" value="'+today()+'"><label>Note (optional)</label><input id="f3"><div id="pls">'+sRow()+'</div><p><button class="btn g" data-a="addsrow">+ Aur item</button></p><p class="mute">Ek hi item alag rate par bika ho to alag line likhein.</p><p><button class="btn" data-a="salesave">Save</button> <button class="btn g" data-a="close">Band</button></p>');if(pre)fillSale(pre)}
 var BT,PT;
 async function costOf(l){
 if(!BT[l.item_id]){var b=await api("GET","purchase_lines?item_id=eq."+l.item_id+"&qty_left=gt.0&select=id,qty_left,rate,purchases(purchase_date)");b.sort(srt);BT[l.item_id]=b}
@@ -195,9 +199,9 @@ async function saleSave(){
 var ls=[].slice.call(document.querySelectorAll(".pl")).map(function(r){return{item_id:parseInt(r.querySelector("select").value),qty:parseFloat(r.querySelector(".q").value),rate:parseFloat(r.querySelector(".r").value)}}).filter(function(l){return l.item_id||l.qty||l.rate});
 if(!ls.length||ls.some(function(l){return !l.item_id||!(l.qty>0)||!(l.rate>=0)}))return alert("Har line mein item, quantity aur rate zaroori hain.");
 var need={};ls.forEach(function(l){need[l.item_id]=(need[l.item_id]||0)+l.qty});
-var low=Object.keys(need).filter(function(k){return need[k]>(STK[k]||0)}).map(function(k){return ITEMS.filter(function(i){return i.id==k})[0].name});
+var low=Object.keys(need).filter(function(k){return need[k]>((STK[k]||0)+(EDITQ[k]||0))}).map(function(k){return ITEMS.filter(function(i){return i.id==k})[0].name});
 if(low.length&&!confirm("Stock kam hai: "+low.join(", ")+". Phir bhi save karein?"))return;
-BT={};PT={};var s;
+if(EDIT){try{await delRaw(EDIT);EDIT=null;EDITQ={}}catch(e){return err(e)}}BT={};PT={};var s;
 try{s=(await api("POST","sales",{sale_date:$("f1").value,customer_id:SALEC,note:$("f3").value.trim()||null}))[0];
 try{var rows=[];for(var i=0;i<ls.length;i++){var cr=await costOf(ls[i]);rows.push({sale_id:s.id,item_id:ls[i].item_id,qty:ls[i].qty,rate:ls[i].rate,cost_rate:cr==null?null:Math.round(cr*100)/100})}
 await api("POST","sale_lines",rows)}catch(e){await api("DELETE","sales?id=eq."+s.id).catch(function(){});throw e}
@@ -253,12 +257,66 @@ else if(a=="cwa")wa();
 else if(a=="expf")expForm();
 else if(a=="expsave")expSave();
 else if(a=="delexp"){if(confirm("Ye kharcha hata dein?"))api("DELETE","expenses?id=eq."+d.id).then(showExp).catch(err)}
-else if(a=="rpm"){RP.m=d.v;showRep()}}
+else if(a=="rpm"){RP.m=d.v;showRep()}else x3(a,d)}
 document.addEventListener("change",function(e){
 if(e.target.id=="rpd"&&e.target.value){RP.d=e.target.value;showRep();return}
 var s=e.target.closest('[data-a="spick"]');if(!s)return;var c=s.closest(".pl"),i=s.value;
 c.querySelector(".r").placeholder=LSR[i]!=null?("Rate (pichla bika "+LSR[i]+")"):"Rate";
 c.querySelector(".hint").textContent=i?("Stock: "+(STK[i]||0)+" box"):""});
+
+var EDIT=null,EDITQ={},EXP=[];
+function addDays(t,n){var d=new Date(t+"T00:00:00");d.setDate(d.getDate()+n);return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2)}
+function alerts(){
+var h="",lo=ITEMS.filter(function(i){return (i.min_stock||0)>0&&(STK[i.id]||0)<=i.min_stock});
+if(lo.length)h+='<div class="msg"><b>Kam stock:</b><br>'+lo.map(function(i){return esc(i.name)+' ('+(STK[i.id]||0)+' box)'}).join("<br>")+'</div>';
+var t=today(),lim=addDays(t,90),ex=EXP.filter(function(l){return l.expiry_date<=lim});
+if(ex.length)h+='<div class="msg"><b>Expiry ka dhyan (90 din):</b><br>'+ex.map(function(l){return esc(l.items.name)+' · '+l.qty_left+' box · '+l.expiry_date+(l.expiry_date<t?' <b>(EXPIRE)</b>':"")}).join("<br>")+'</div>';
+return h}
+function pedit(t,id){
+var x=(t=="suppliers"?SUPS:CUS).filter(function(z){return z.id==id})[0];
+modal('<h3>Badlein</h3><label>Naam</label><input id="f1" value="'+esc(x.name)+'"><label>Phone (92 ke saath)</label><input id="f2" type="tel" inputmode="numeric" value="'+esc(x.phone||"")+'"><p><button class="btn" data-a="peditsave" data-t="'+t+'" data-id="'+id+'">Save</button> <button class="btn r" data-a="pdel" data-t="'+t+'" data-id="'+id+'">Hatayein</button> <button class="btn g" data-a="close">Band</button></p>')}
+async function peditSave(t,id){var n=$("f1").value.trim();if(!n)return alert("Naam likhein.");
+try{await api("PATCH",t+"?id=eq."+id,{name:n,phone:$("f2").value.trim()||null});closeM();await load();if(CUR)showSup(CUR);else if(CC)showCusD(CC);else show()}catch(e){err(e)}}
+async function pdel(t,id){
+if(!confirm("Pakka hata dein?"))return;
+try{await api("DELETE",t+"?id=eq."+id);closeM();CUR=null;CC=null;await load();show()}catch(e){alert("Hata nahi sakte, is ke saath hisaab maujood hai. Pehle iski entries hatayein.")}}
+async function itemDel(id){
+if(!confirm("Ye item hata dein?"))return;
+try{await api("DELETE","items?id=eq."+id);closeM();await load();show()}catch(e){alert("Hata nahi sakte, is item ki khareedari ya sale maujood hai.")}}
+function swa(){
+var s=SD.s,d=(s.phone||"").replace(/\D/g,"");if(!d)return alert("Is supplier ka number nahi likha.");
+if(d.charAt(0)=="0")d="92"+d.slice(1);
+var ev=[];SD.pur.forEach(function(p){ev.push({d:p.purchase_date,t:"• "+p.purchase_date+": "+p.purchase_lines.map(function(l){return l.items.name+" "+l.qty+"×"+l.rate}).join(", ")+" = "+rs(p.purchase_lines.reduce(function(z,l){return z+l.qty*l.rate},0))})});
+SD.pay.forEach(function(p){ev.push({d:p.paid_on,t:"✔ "+p.paid_on+" adaigi: "+rs(Number(p.amount))})});
+ev.sort(function(x,y){return x.d<y.d?-1:x.d>y.d?1:0});var skip=ev.length>20;ev=ev.slice(-20);
+var m="Assalam o Alaikum "+s.name+",\nGhousia Traders ki taraf se hisaab:\n\n"+(skip?"(aakhri 20 entries)\n":"")+ev.map(function(x){return x.t}).join("\n")+"\n\nKul maal: "+rs(SD.tot)+"\nKul adaigi: "+rs(SD.paid)+"\n*Baqi: "+rs(SD.tot-SD.paid)+"*\n\nShukriya.";
+window.open("https://wa.me/"+d+"?text="+encodeURIComponent(m),"_blank")}
+async function delPur(id){
+try{var l=await api("GET","purchase_lines?purchase_id=eq."+id+"&select=qty,qty_left");
+if(l.some(function(x){return Number(x.qty_left)<Number(x.qty)}))return alert("Is khareedari ka kuch maal bik chuka hai, isliye hata nahi sakte.");
+if(!confirm("Ye khareedari hata dein?"))return;
+await api("DELETE","purchases?id=eq."+id);await load2();showSup(SD.id)}catch(e){err(e)}}
+async function delSP(id){if(!confirm("Ye adaigi hata dein?"))return;
+try{await api("DELETE","supplier_payments?id=eq."+id);await load2();showSup(SD.id)}catch(e){err(e)}}
+function fillSale(p){
+$("f1").value=p.date;$("f3").value=p.note||"";
+p.lines.forEach(function(l,i){if(i>0)$("pls").insertAdjacentHTML("beforeend",sRow());var r=document.querySelectorAll(".pl")[i];r.querySelector("select").value=l.item_id;r.querySelector(".q").value=l.qty;r.querySelector(".r").value=l.rate;r.querySelector(".hint").textContent="Stock: "+(STK[l.item_id]||0)+" box"})}
+async function editSale(id){
+try{var s=(await api("GET","sales?id=eq."+id+"&select=id,sale_date,note,customer_id,sale_lines(item_id,qty,rate)"))[0];saleForm(s.customer_id,{id:s.id,date:s.sale_date,note:s.note,lines:s.sale_lines})}catch(e){err(e)}}
+async function delRaw(id){
+var l=await api("GET","sale_lines?sale_id=eq."+id+"&select=item_id,qty");
+for(var i=0;i<l.length;i++)await restore(l[i].item_id,Number(l[i].qty));
+await api("DELETE","sales?id=eq."+id)}
+function x3(a,d){
+if(a=="pedit")pedit(d.t,d.id);
+else if(a=="peditsave")peditSave(d.t,d.id);
+else if(a=="pdel")pdel(d.t,d.id);
+else if(a=="itemdel")itemDel(d.id);
+else if(a=="swa")swa();
+else if(a=="delpur")delPur(d.id);
+else if(a=="delsp")delSP(d.id);
+else if(a=="editsale")editSale(d.id)}
+if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(function(){});
 
 boot();
 </script>
