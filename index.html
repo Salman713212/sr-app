@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ur-Latn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>SR Wholesale Mart</title>
+<style>
+:root{--bg:#f3f6f4;--card:#fff;--ink:#12241a;--mute:#5b6c62;--brand:#0f5132;--b2:#1b7a4c;--line:#dbe5de;--red:#c0392b;--gold:#e8b21a}
+@media (prefers-color-scheme:dark){:root{--bg:#0c1510;--card:#15221a;--ink:#e8f1ea;--mute:#9db1a3;--b2:#3fbf7f;--line:#27382d}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,sans-serif;padding-bottom:80px}
+header{background:var(--brand);color:#fff;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:5}
+header b{font-size:18px}
+header button{background:rgba(255,255,255,.15);border:0;color:#fff;border-radius:8px;padding:6px 10px;font:600 13px inherit;margin-left:6px}
+main{max-width:720px;margin:0 auto;padding:12px}
+nav{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--line);display:flex;z-index:5}
+nav button{flex:1;border:0;background:transparent;color:var(--mute);padding:12px 4px;font:700 14px inherit}
+nav button.on{color:var(--b2);box-shadow:inset 0 3px 0 var(--b2)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin:10px 0}
+.row{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.mute{color:var(--mute);font-size:13px}
+.btn{border:0;background:var(--b2);color:#fff;border-radius:10px;padding:10px 14px;font:700 14px inherit}
+.btn.g{background:transparent;color:var(--b2);border:1.5px solid var(--b2)}
+.btn.r{background:var(--red)}
+.big{font-size:24px;font-weight:800}
+.red{color:var(--red)}.grn{color:var(--b2)}
+input,select{width:100%;padding:11px;border:1.5px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);font:inherit}
+label{display:block;font-weight:600;font-size:14px;margin:10px 0 4px}
+.mod{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;z-index:20;overflow:auto}
+.mod.on{display:block}
+.mod>div{background:var(--bg);margin:30px auto;max-width:560px;border-radius:16px;padding:14px;width:calc(100% - 20px)}
+.g3{display:grid;grid-template-columns:2fr 1fr 1fr;gap:6px}
+.msg{padding:10px;border-radius:10px;background:#fde8e6;color:#8a1c12;margin:10px 0}
+#login{max-width:380px;margin:60px auto;padding:0 14px}
+</style>
+</head>
+<body>
+<div id="login" hidden>
+<h1>SR Wholesale Mart</h1>
+<label>Email</label><input id="em" type="email" autocomplete="username">
+<label>Password</label><input id="pw" type="password" autocomplete="current-password">
+<div id="lerr"></div>
+<p><button class="btn" style="width:100%" data-a="login">Login</button></p>
+</div>
+<div id="shell" hidden>
+<header><b id="ttl">SR Wholesale Mart</b><span><button data-a="backup">⬇ Backup</button><button data-a="logout">Logout</button></span></header>
+<main id="app"></main>
+<nav><button data-a="tab" data-v="items">Maal</button><button data-a="tab" data-v="sup">Suppliers</button><button data-a="tab" data-v="cus">Customers</button></nav>
+</div>
+<div class="mod" id="mod"><div id="modc"></div></div>
+<script>
+var U="https://uzhkhtpxcabunboeyrxa.supabase.co",K="sb_publishable_GXLBV9EMw-_wKxHwiatgjQ_nXfuT3bH";
+var $=function(i){return document.getElementById(i)},S=null,T="items",ITEMS=[],SUPS=[],CUS=[],CUR=null;
+try{S=JSON.parse(localStorage.getItem("srm")||"null")}catch(e){}
+function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;")}
+function rs(n){return "Rs "+(Math.round(n*100)/100).toLocaleString("en-PK")}
+function today(){var d=new Date();return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2)}
+function save(j){S={at:j.access_token,rt:j.refresh_token,exp:Math.floor(Date.now()/1000)+(j.expires_in||3600)};try{localStorage.setItem("srm",JSON.stringify(S))}catch(e){}}
+async function tok(){
+if(!S)throw new Error("login");
+if(S.exp-Date.now()/1000<60){var r=await fetch(U+"/auth/v1/token?grant_type=refresh_token",{method:"POST",headers:{apikey:K,"Content-Type":"application/json"},body:JSON.stringify({refresh_token:S.rt})});
+if(!r.ok){S=null;try{localStorage.removeItem("srm")}catch(e){}throw new Error("login")}save(await r.json())}
+return S.at}
+async function api(m,p,b){
+var t=await tok(),r=await fetch(U+"/rest/v1/"+p,{method:m,headers:{apikey:K,Authorization:"Bearer "+t,"Content-Type":"application/json",Prefer:"return=representation"},body:b?JSON.stringify(b):undefined}),x=await r.text(),j=null;
+try{j=x?JSON.parse(x):null}catch(e){}
+if(!r.ok)throw new Error((j&&j.message)||("Error "+r.status));return j}
+function modal(h){$("modc").innerHTML=h;$("mod").classList.add("on")}
+function closeM(){$("mod").classList.remove("on")}
+function err(e){alert(e&&e.message==="login"?"Dobara login karein.":("Masla: "+(e&&e.message||e)));if(e&&e.message==="login")boot()}
+async function boot(){
+if(!S){$("login").hidden=false;$("shell").hidden=true;return}
+$("login").hidden=true;$("shell").hidden=false;
+try{await load();show()}catch(e){if(e.message==="login"){boot()}else $("app").innerHTML='<div class="msg">Data nahi aaya: '+esc(e.message)+'</div>'}}
+async function load(){var a=await Promise.all([api("GET","items?select=*&order=name"),api("GET","suppliers?select=*&order=name"),api("GET","customers?select=*&order=name")]);ITEMS=a[0];SUPS=a[1];CUS=a[2]}
+function show(){
+document.querySelectorAll("nav button").forEach(function(b){b.className=b.dataset.v==T&&!CUR?"on":""});
+if(CUR)return showSup(CUR);
+var h="";
+if(T=="items"){h='<div class="row"><h2>Maal ('+ITEMS.length+')</h2><button class="btn" data-a="itemf">+ Naya item</button></div>'+ITEMS.map(function(i){return '<div class="card row"><div><b>'+esc(i.name)+'</b><div class="mute">'+esc(i.category||"")+' · 1 cotton = '+i.boxes_per_cotton+' '+esc(i.unit)+'</div></div><button class="btn g" data-a="itemf" data-id="'+i.id+'">Edit</button></div>'}).join("")||'<p class="mute">Abhi koi item nahi. + Naya item dabayein.</p>'}
+else if(T=="sup"){h='<div class="row"><h2>Suppliers ('+SUPS.length+')</h2><button class="btn" data-a="pf" data-t="suppliers">+ Naya</button></div>'+SUPS.map(function(s){return '<div class="card row" data-a="sup" data-id="'+s.id+'"><div><b>'+esc(s.name)+'</b><div class="mute">'+esc(s.phone||"")+'</div></div><span class="grn">Khulein ›</span></div>'}).join("")||'<p class="mute">Abhi koi supplier nahi.</p>'}
+else{h='<div class="row"><h2>Customers ('+CUS.length+')</h2><button class="btn" data-a="pf" data-t="customers">+ Naya</button></div>'+CUS.map(function(s){return '<div class="card"><b>'+esc(s.name)+'</b><div class="mute">'+esc(s.phone||"")+'</div></div>'}).join("")+'<p class="mute">Udhaar ka hisaab agle version mein aayega.</p>'}
+$("app").innerHTML=h}
+function itemForm(id){
+var i=ITEMS.filter(function(x){return x.id==id})[0]||{name:"",category:"",unit:"box",boxes_per_cotton:1};
+modal('<h3>'+(id?"Item badlein":"Naya item")+'</h3><label>Naam</label><input id="f1" value="'+esc(i.name)+'"><label>Category</label><input id="f2" value="'+esc(i.category||"")+'"><label>Unit (box)</label><input id="f3" value="'+esc(i.unit)+'"><label>Cotton mein kitne box</label><input id="f4" type="number" inputmode="numeric" value="'+i.boxes_per_cotton+'"><p><button class="btn" data-a="itemsave" data-id="'+(id||"")+'">Save</button> <button class="btn g" data-a="close">Band</button></p>')}
+async function itemSave(id){
+var b={name:$("f1").value.trim(),category:$("f2").value.trim()||null,unit:$("f3").value.trim()||"box",boxes_per_cotton:parseInt($("f4").value)||1};
+if(!b.name)return alert("Naam likhein.");
+try{if(id)await api("PATCH","items?id=eq."+id,b);else await api("POST","items",b);closeM();await load();show()}catch(e){err(e)}}
+function pform(t){modal('<h3>Naya '+(t=="suppliers"?"supplier":"customer")+'</h3><label>Naam</label><input id="f1"><label>Phone (92 ke saath)</label><input id="f2" type="tel" inputmode="numeric"><p><button class="btn" data-a="psave" data-t="'+t+'">Save</button> <button class="btn g" data-a="close">Band</button></p>')}
+async function psave(t){var n=$("f1").value.trim();if(!n)return alert("Naam likhein.");
+try{await api("POST",t,{name:n,phone:$("f2").value.trim()||null});closeM();await load();show()}catch(e){err(e)}}
+var SD=null;
+async function showSup(id){
+var s=SUPS.filter(function(x){return x.id==id})[0];$("app").innerHTML='<p class="mute">Load ho raha hai…</p>';
+try{var a=await Promise.all([api("GET","purchases?supplier_id=eq."+id+"&select=id,purchase_date,note,purchase_lines(id,item_id,qty,rate,expiry_date,items(name))&order=purchase_date.desc,id.desc"),api("GET","supplier_payments?supplier_id=eq."+id+"&order=paid_on.desc,id.desc")])}catch(e){return err(e)}
+var tot=0,paid=0,last={};
+a[0].forEach(function(p){p.purchase_lines.forEach(function(l){tot+=l.qty*l.rate;if(!last[l.item_id])last[l.item_id]={n:l.items.name,r:l.rate,d:p.purchase_date}})});
+a[1].forEach(function(p){paid+=Number(p.amount)});
+SD={id:id,last:last};var bal=tot-paid;
+$("app").innerHTML='<button class="btn g" data-a="back">‹ Wapas</button><div class="card"><div class="row"><div><b style="font-size:18px">'+esc(s.name)+'</b><div class="mute">'+esc(s.phone||"")+'</div></div></div><div class="row" style="margin-top:8px"><div><div class="mute">Kul khareedari</div><b>'+rs(tot)+'</b></div><div><div class="mute">Adaigi</div><b>'+rs(paid)+'</b></div><div><div class="mute">Baqi (dene hain)</div><div class="big '+(bal>0?"red":"grn")+'">'+rs(bal)+'</div></div></div></div><div class="row"><button class="btn" data-a="purf">+ Khareedari</button><button class="btn g" data-a="payf">+ Adaigi</button></div>'+
+'<h3>Pichla rate</h3>'+(Object.keys(last).map(function(k){var x=last[k];return '<div class="card row"><span>'+esc(x.n)+'</span><span><b>'+rs(x.r)+'</b> <span class="mute">'+x.d+'</span></span></div>'}).join("")||'<p class="mute">Abhi koi khareedari nahi.</p>')+
+'<h3>Khareedari ki tareekh</h3>'+a[0].map(function(p){var t=p.purchase_lines.reduce(function(z,l){return z+l.qty*l.rate},0);return '<div class="card"><div class="row"><b>'+p.purchase_date+'</b><b>'+rs(t)+'</b></div>'+p.purchase_lines.map(function(l){return '<div class="mute">'+esc(l.items.name)+' · '+l.qty+' × '+rs(l.rate)+'</div>'}).join("")+(p.note?'<div class="mute">'+esc(p.note)+'</div>':"")+'</div>'}).join("")+
+'<h3>Adaigi ki tareekh</h3>'+a[1].map(function(p){return '<div class="card row"><span>'+p.paid_on+(p.note?' <span class="mute">'+esc(p.note)+'</span>':"")+'</span><b>'+rs(Number(p.amount))+'</b></div>'}).join("")}
+function payForm(){modal('<h3>Supplier ko adaigi</h3><label>Tareekh</label><input id="f1" type="date" value="'+today()+'"><label>Raqam (Rs)</label><input id="f2" type="number" inputmode="numeric"><label>Note (optional)</label><input id="f3"><p><button class="btn" data-a="paysave">Save</button> <button class="btn g" data-a="close">Band</button></p>')}
+async function paySave(){var m=parseFloat($("f2").value);if(!(m>0))return alert("Raqam likhein.");
+try{await api("POST","supplier_payments",{supplier_id:SD.id,paid_on:$("f1").value,amount:m,note:$("f3").value.trim()||null});closeM();showSup(SD.id)}catch(e){err(e)}}
+function lineRow(){return '<div class="card pl"><select data-a="pick"><option value="">Item chunein</option>'+ITEMS.map(function(i){return '<option value="'+i.id+'">'+esc(i.name)+'</option>'}).join("")+'</select><div class="g3" style="margin-top:6px"><input class="q" type="number" inputmode="decimal" placeholder="Quantity"><input class="r" type="number" inputmode="decimal" placeholder="Rate"><input class="x" type="date" title="Expiry"></div></div>'}
+function purForm(){if(!ITEMS.length)return alert("Pehle Maal tab mein items add karein.");
+modal('<h3>Nayi khareedari</h3><label>Tareekh</label><input id="f1" type="date" value="'+today()+'"><label>Note (optional)</label><input id="f3"><div id="pls">'+lineRow()+'</div><p class="mute">Quantity box mein, rate ek box ka, expiry khali chhor sakte hain.</p><p><button class="btn g" data-a="addline">+ Aur item</button></p><p><button class="btn" data-a="pursave">Save</button> <button class="btn g" data-a="close">Band</button></p>')}
+async function purSave(){
+var ls=[].slice.call(document.querySelectorAll(".pl")).map(function(r){return{item_id:parseInt(r.querySelector("select").value),qty:parseFloat(r.querySelector(".q").value),rate:parseFloat(r.querySelector(".r").value),exp:r.querySelector(".x").value}}).filter(function(l){return l.item_id||l.qty||l.rate});
+if(!ls.length||ls.some(function(l){return !l.item_id||!(l.qty>0)||!(l.rate>=0)}))return alert("Har line mein item, quantity aur rate zaroori hain.");
+var p;
+try{p=(await api("POST","purchases",{supplier_id:SD.id,purchase_date:$("f1").value,note:$("f3").value.trim()||null}))[0];
+try{await api("POST","purchase_lines",ls.map(function(l){return{purchase_id:p.id,item_id:l.item_id,qty:l.qty,rate:l.rate,qty_left:l.qty,expiry_date:l.exp||null}}))}catch(e){await api("DELETE","purchases?id=eq."+p.id).catch(function(){});throw e}
+closeM();showSup(SD.id)}catch(e){err(e)}}
+async function backup(){
+var tb=["items","suppliers","customers","purchases","purchase_lines","supplier_payments","customer_payments","sales","sale_lines","expenses"],o={saved_at:new Date().toISOString()};
+try{for(var i=0;i<tb.length;i++)o[tb[i]]=await api("GET",tb[i]+"?select=*");
+var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(o)],{type:"application/json"}));a.download="srm-backup-"+today()+".json";a.click()}catch(e){err(e)}}
+async function login(){
+$("lerr").innerHTML="";
+try{var r=await fetch(U+"/auth/v1/token?grant_type=password",{method:"POST",headers:{apikey:K,"Content-Type":"application/json"},body:JSON.stringify({email:$("em").value.trim(),password:$("pw").value})}),j=await r.json();
+if(!r.ok)throw new Error(j.error_description||j.msg||"Login nahi hua");save(j);boot()}catch(e){$("lerr").innerHTML='<div class="msg">'+esc(e.message)+'</div>'}}
+document.addEventListener("change",function(e){
+var s=e.target.closest('[data-a="pick"]');if(!s||!SD)return;var l=SD.last[s.value],r=s.closest(".pl").querySelector(".r");r.placeholder=l?("Rate (pichla "+l.r+")"):"Rate"});
+document.addEventListener("click",function(e){
+var b=e.target.closest("[data-a]");if(!b)return;var a=b.dataset.a,d=b.dataset;
+if(a=="login")login();
+else if(a=="logout"){S=null;CUR=null;try{localStorage.removeItem("srm")}catch(x){}boot()}
+else if(a=="tab"){T=d.v;CUR=null;show()}
+else if(a=="itemf")itemForm(d.id);
+else if(a=="itemsave")itemSave(d.id);
+else if(a=="pf")pform(d.t);
+else if(a=="psave")psave(d.t);
+else if(a=="sup"){CUR=d.id;show()}
+else if(a=="back"){CUR=null;show()}
+else if(a=="payf")payForm();
+else if(a=="paysave")paySave();
+else if(a=="purf")purForm();
+else if(a=="addline"){$("pls").insertAdjacentHTML("beforeend",lineRow())}
+else if(a=="pursave")purSave();
+else if(a=="backup")backup();
+else if(a=="close")closeM()});
+boot();
+</script>
+</body>
+</html>
