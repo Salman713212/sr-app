@@ -53,6 +53,7 @@ label{display:block;font-weight:600;font-size:14px;margin:10px 0 4px}
 <main id="app"></main>
 <nav><button data-a="tab" data-v="items">Maal</button><button data-a="tab" data-v="sup">Party</button><button data-a="tab" data-v="cus">Udhaar</button><button data-a="tab" data-v="sale">Sale</button><button data-a="tab" data-v="exp">Kharche</button><button data-a="tab" data-v="rep">Report</button></nav>
 </div>
+<datalist id="itl"></datalist>
 <div class="mod" id="mod"><div id="modc"></div></div>
 <script>
 var U="https://uzhkhtpxcabunboeyrxa.supabase.co",K="sb_publishable_GXLBV9EMw-_wKxHwiatgjQ_nXfuT3bH";
@@ -78,13 +79,13 @@ async function boot(){
 if(!S){$("login").hidden=false;$("shell").hidden=true;return}
 $("login").hidden=true;$("shell").hidden=false;
 try{await load();show()}catch(e){if(e.message==="login"){boot()}else $("app").innerHTML='<div class="msg">Data nahi aaya: '+esc(e.message)+'</div>'}}
-async function load(){var a=await Promise.all([api("GET","items?select=*&order=name"),api("GET","suppliers?select=*&order=name"),api("GET","customers?select=*&order=name")]);ITEMS=a[0];SUPS=a[1];CUS=a[2];await load2()}
+async function load(){var a=await Promise.all([api("GET","items?select=*&order=name"),api("GET","suppliers?select=*&order=name"),api("GET","customers?select=*&order=name")]);ITEMS=a[0];SUPS=a[1];CUS=a[2];await load2();fillDL()}
 function show(){
 document.querySelectorAll("nav button").forEach(function(b){b.className=b.dataset.v==T&&!CUR?"on":""});
 if(CUR)return showSup(CUR);if(CC)return showCusD(CC);if(T=="cus")return showCus();if(T=="sale")return showSale();if(T=="exp")return showExp();if(T=="rep")return showRep();
 var h="";
 if(T=="items"){h=alerts()+'<div class="row"><h2>Maal ('+ITEMS.length+')</h2><button class="btn" data-a="itemf">+ Naya item</button></div>'+ITEMS.map(function(i){return '<div class="card row"><div><b>'+esc(i.name)+'</b><div class="mute">'+esc(i.category||"")+' · 1 cotton = '+i.boxes_per_cotton+' '+esc(i.unit)+' · <b>Stock: '+(STK[i.id]||0)+'</b></div></div><button class="btn g" data-a="itemf" data-id="'+i.id+'">Edit</button></div>'}).join("")||'<p class="mute">Abhi koi item nahi. + Naya item dabayein.</p>'}
-else if(T=="sup"){h='<div class="row"><h2>Suppliers ('+SUPS.length+')</h2><button class="btn" data-a="pf" data-t="suppliers">+ Naya</button></div>'+SUPS.map(function(s){return '<div class="card row" data-a="sup" data-id="'+s.id+'"><div><b>'+esc(s.name)+'</b><div class="mute">'+esc(s.phone||"")+'</div></div><span class="'+((SB[s.id]||0)>0?"red":"grn")+'"><b>'+rs(SB[s.id]||0)+'</b> ›</span></div>'}).join("")||'<p class="mute">Abhi koi supplier nahi.</p>'}
+else if(T=="sup"){h='<div class="row"><h2>Suppliers ('+SUPS.length+')</h2><button class="btn" data-a="pf" data-t="suppliers">+ Naya</button></div>'+dash()+SUPS.map(function(s){return '<div class="card row" data-a="sup" data-id="'+s.id+'"><div><b>'+esc(s.name)+'</b><div class="mute">'+esc(s.phone||"")+'</div></div><span class="'+((SB[s.id]||0)>0?"red":"grn")+'"><b>'+rs(SB[s.id]||0)+'</b> ›</span></div>'}).join("")||'<p class="mute">Abhi koi supplier nahi.</p>'}
 else{h='<div class="row"><h2>Customers ('+CUS.length+')</h2><button class="btn" data-a="pf" data-t="customers">+ Naya</button></div>'+CUS.map(function(s){return '<div class="card"><b>'+esc(s.name)+'</b><div class="mute">'+esc(s.phone||"")+'</div></div>'}).join("")+'<p class="mute">Udhaar ka hisaab agle version mein aayega.</p>'}
 $("app").innerHTML=h}
 function itemForm(id){
@@ -112,12 +113,12 @@ $("app").innerHTML='<button class="btn g" data-a="back">‹ Wapas</button> <butt
 function payForm(){modal('<h3>Supplier ko adaigi</h3><label>Tareekh</label><input id="f1" type="date" value="'+today()+'"><label>Raqam (Rs)</label><input id="f2" type="number" inputmode="numeric"><label>Note (optional)</label><input id="f3"><p><button class="btn" data-a="paysave">Save</button> <button class="btn g" data-a="close">Band</button></p>')}
 async function paySave(){var m=parseFloat($("f2").value);if(!(m>0))return alert("Raqam likhein.");
 try{await api("POST","supplier_payments",{supplier_id:SD.id,paid_on:$("f1").value,amount:m,note:$("f3").value.trim()||null});closeM();await load2();showSup(SD.id)}catch(e){err(e)}}
-function lineRow(){return '<div class="card pl"><select data-a="pick"><option value="">Item chunein</option>'+ITEMS.map(function(i){return '<option value="'+i.id+'">'+esc(i.name)+'</option>'}).join("")+'</select><div class="g3" style="margin-top:6px"><input class="q" type="number" inputmode="decimal" placeholder="Quantity"><input class="r" type="number" inputmode="decimal" placeholder="Rate"><input class="x" type="date" title="Expiry"></div></div>'}
+function lineRow(){return '<div class="card pl"><input class="it" data-a="pick" list="itl" placeholder="Item ka naam likhein ya chunein" autocomplete="off"><div class="g3" style="margin-top:6px"><input class="q" type="number" inputmode="decimal" placeholder="Quantity"><input class="r" type="number" inputmode="decimal" placeholder="Rate"><input class="x" type="date" title="Expiry"></div></div>'}
 function purForm(){if(!ITEMS.length)return alert("Pehle Maal tab mein items add karein.");
 modal('<h3>Nayi khareedari</h3><label>Tareekh</label><input id="f1" type="date" value="'+today()+'"><label>Note (optional)</label><input id="f3"><div id="pls">'+lineRow()+'</div><p class="mute">Quantity box mein, rate ek box ka, expiry khali chhor sakte hain.</p><p><button class="btn g" data-a="addline">+ Aur item</button></p><p><button class="btn" data-a="pursave">Save</button> <button class="btn g" data-a="close">Band</button></p>')}
 async function purSave(){
-var ls=[].slice.call(document.querySelectorAll(".pl")).map(function(r){return{item_id:parseInt(r.querySelector("select").value),qty:parseFloat(r.querySelector(".q").value),rate:parseFloat(r.querySelector(".r").value),exp:r.querySelector(".x").value}}).filter(function(l){return l.item_id||l.qty||l.rate});
-if(!ls.length||ls.some(function(l){return !l.item_id||!(l.qty>0)||!(l.rate>=0)}))return alert("Har line mein item, quantity aur rate zaroori hain.");
+var ls=[].slice.call(document.querySelectorAll(".pl")).map(function(r){return{item_id:iid(r),qty:parseFloat(r.querySelector(".q").value),rate:parseFloat(r.querySelector(".r").value),exp:r.querySelector(".x").value}}).filter(function(l){return l.item_id||l.qty||l.rate});
+if(!ls.length||ls.some(function(l){return !l.item_id||!(l.qty>0)||!(l.rate>=0)}))return alert("Har line mein item (list se naam chunein), quantity aur rate zaroori hain.");
 var p;
 try{p=(await api("POST","purchases",{supplier_id:SD.id,purchase_date:$("f1").value,note:$("f3").value.trim()||null}))[0];
 try{await api("POST","purchase_lines",ls.map(function(l){return{purchase_id:p.id,item_id:l.item_id,qty:l.qty,rate:l.rate,qty_left:l.qty,expiry_date:l.exp||null}}))}catch(e){await api("DELETE","purchases?id=eq."+p.id).catch(function(){});throw e}
@@ -131,7 +132,7 @@ $("lerr").innerHTML="";
 try{var r=await fetch(U+"/auth/v1/token?grant_type=password",{method:"POST",headers:{apikey:K,"Content-Type":"application/json"},body:JSON.stringify({email:$("em").value.trim(),password:$("pw").value})}),j=await r.json();
 if(!r.ok)throw new Error(j.error_description||j.msg||"Login nahi hua");save(j);boot()}catch(e){$("lerr").innerHTML='<div class="msg">'+esc(e.message)+'</div>'}}
 document.addEventListener("change",function(e){
-var s=e.target.closest('[data-a="pick"]');if(!s||!SD)return;var l=SD.last[s.value],r=s.closest(".pl").querySelector(".r");r.placeholder=l?("Rate (pichla "+l.r+")"):"Rate"});
+var s=e.target.closest('[data-a="pick"]');if(!s||!SD)return;var l=SD.last[iidv(s.value)],r=s.closest(".pl").querySelector(".r");r.placeholder=l?("Rate (pichla "+l.r+")"):"Rate"});
 document.addEventListener("click",function(e){
 var b=e.target.closest("[data-a]");if(!b)return;var a=b.dataset.a,d=b.dataset;
 if(a=="login")login();
@@ -164,10 +165,10 @@ a[4].forEach(function(p){SB[p.supplier_id]=(SB[p.supplier_id]||0)-Number(p.amoun
 a[5].forEach(function(l){if(!(l.item_id in LSR))LSR[l.item_id]=l.rate})}
 function showCus(){
 var tot=0;CUS.forEach(function(c){tot+=(CB[c.id]||0)});
-$("app").innerHTML='<div class="row"><h2>Customers ('+CUS.length+')</h2><button class="btn" data-a="pf" data-t="customers">+ Naya</button></div><div class="card"><div class="mute">Kul udhaar baqi</div><div class="big '+(tot>0?"red":"grn")+'">'+rs(tot)+'</div></div>'+CUS.map(function(c){return '<div class="card row" data-a="cus" data-id="'+c.id+'"><div><b>'+esc(c.name)+'</b><div class="mute">'+esc(c.phone||"")+'</div></div>'+bal(CB[c.id]||0)+'</div>'}).join("")}
+$("app").innerHTML='<div class="row"><h2>Customers ('+CUS.length+')</h2><button class="btn" data-a="pf" data-t="customers">+ Naya</button></div>'+dash()+''+CUS.map(function(c){return '<div class="card row" data-a="cus" data-id="'+c.id+'"><div><b>'+esc(c.name)+'</b><div class="mute">'+esc(c.phone||"")+'</div></div>'+bal(CB[c.id]||0)+'</div>'}).join("")}
 function sCard(s,del){
 var t=s.sale_lines.reduce(function(z,l){return z+l.qty*l.rate},0);
-return '<div class="card"><div class="row"><b>'+s.sale_date+'</b><b>'+rs(t)+'</b></div>'+s.sale_lines.map(function(l){return '<div class="mute">'+esc(l.items.name)+' · '+l.qty+' × '+rs(l.rate)+'</div>'}).join("")+(s.note?'<div class="mute">'+esc(s.note)+'</div>':"")+'<button class="btn g" style="margin-top:6px" data-a="editsale" data-id="'+s.id+'">Badlein</button> <button class="btn g" style="margin-top:6px" data-a="delsale" data-id="'+s.id+'">Hatayein</button></div>'}
+return '<div class="card"><div class="row"><b>'+s.sale_date+'</b><b>'+rs(t)+'</b></div>'+s.sale_lines.map(function(l){return '<div class="mute">'+esc(l.items.name)+' · '+l.qty+' × '+rs(l.rate)+'</div>'}).join("")+(s.note?'<div class="mute">'+esc(s.note)+'</div>':"")+'<button class="btn g" style="margin-top:6px" data-a="bill" data-id="'+s.id+'">🧾 Bill</button> <button class="btn g" style="margin-top:6px" data-a="editsale" data-id="'+s.id+'">Badlein</button> <button class="btn g" style="margin-top:6px" data-a="delsale" data-id="'+s.id+'">Hatayein</button></div>'}
 async function showCusD(id){
 var c=CUS.filter(function(x){return x.id==id})[0];$("app").innerHTML='<p class="mute">Load ho raha hai…</p>';
 try{var a=await Promise.all([api("GET","sales?customer_id=eq."+id+"&select=id,sale_date,note,sale_lines(qty,rate,items(name))&order=sale_date.desc,id.desc"),api("GET","customer_payments?customer_id=eq."+id+"&order=paid_on.desc,id.desc")])}catch(e){return err(e)}
@@ -185,7 +186,7 @@ CD.p.forEach(function(p){ev.push({d:p.paid_on,t:"✔ "+p.paid_on+" wapsi: "+rs(N
 ev.sort(function(x,y){return x.d<y.d?-1:x.d>y.d?1:0});var skip=ev.length>20;ev=ev.slice(-20);
 var m="Assalam o Alaikum "+c.name+",\nGhousia Traders ki taraf se aap ka hisaab:\n\n"+(skip?"(aakhri 20 entries)\n":"")+ev.map(function(x){return x.t}).join("\n")+"\n\nKul udhaar: "+rs(CD.tot)+"\nKul wapsi: "+rs(CD.paid)+"\n*Baqi: "+rs(CD.tot-CD.paid)+"*\n\nShukriya.";
 window.open("https://wa.me/"+d+"?text="+encodeURIComponent(m),"_blank")}
-function sRow(){return '<div class="card pl"><select data-a="spick"><option value="">Item chunein</option>'+ITEMS.map(function(i){return '<option value="'+i.id+'">'+esc(i.name)+'</option>'}).join("")+'</select><div class="g3" style="grid-template-columns:1fr 1fr;margin-top:6px"><input class="q" type="number" inputmode="decimal" placeholder="Quantity"><input class="r" type="number" inputmode="decimal" placeholder="Rate"></div><div class="mute hint"></div></div>'}
+function sRow(){return '<div class="card pl"><input class="it" data-a="spick" list="itl" placeholder="Item ka naam likhein ya chunein" autocomplete="off"><div class="g3" style="grid-template-columns:1fr 1fr;margin-top:6px"><input class="q" type="number" inputmode="decimal" placeholder="Quantity"><input class="r" type="number" inputmode="decimal" placeholder="Rate"></div><div class="mute hint"></div></div>'}
 function saleForm(c,pre){
 if(!ITEMS.length)return alert("Pehle Maal tab mein items add karein.");SALEC=c||null;EDIT=pre?pre.id:null;EDITQ={};if(pre)pre.lines.forEach(function(l){EDITQ[l.item_id]=(EDITQ[l.item_id]||0)+Number(l.qty)});
 modal('<h3>'+(c?"Udhaar entry":"Walk-in sale (din ka total)")+'</h3><label>Tareekh</label><input id="f1" type="date" value="'+today()+'"><label>Note (optional)</label><input id="f3"><div id="pls">'+sRow()+'</div><p><button class="btn g" data-a="addsrow">+ Aur item</button></p><p class="mute">Ek hi item alag rate par bika ho to alag line likhein.</p><p><button class="btn" data-a="salesave">Save</button> <button class="btn g" data-a="close">Band</button></p>');if(pre)fillSale(pre)}
@@ -197,8 +198,8 @@ for(var i=0;i<b2.length&&need>0;i++){var t=Math.min(need,Number(b2[i].qty_left))
 if(need>0){var f=await api("GET","purchase_lines?item_id=eq."+l.item_id+"&select=rate&order=id.desc&limit=1");if(f.length){cost+=need*f[0].rate;need=0}}
 var cov=l.qty-need;return cov>0?cost/cov:null}
 async function saleSave(){
-var ls=[].slice.call(document.querySelectorAll(".pl")).map(function(r){return{item_id:parseInt(r.querySelector("select").value),qty:parseFloat(r.querySelector(".q").value),rate:parseFloat(r.querySelector(".r").value)}}).filter(function(l){return l.item_id||l.qty||l.rate});
-if(!ls.length||ls.some(function(l){return !l.item_id||!(l.qty>0)||!(l.rate>=0)}))return alert("Har line mein item, quantity aur rate zaroori hain.");
+var ls=[].slice.call(document.querySelectorAll(".pl")).map(function(r){return{item_id:iid(r),qty:parseFloat(r.querySelector(".q").value),rate:parseFloat(r.querySelector(".r").value)}}).filter(function(l){return l.item_id||l.qty||l.rate});
+if(!ls.length||ls.some(function(l){return !l.item_id||!(l.qty>0)||!(l.rate>=0)}))return alert("Har line mein item (list se naam chunein), quantity aur rate zaroori hain.");
 var need={};ls.forEach(function(l){need[l.item_id]=(need[l.item_id]||0)+l.qty});
 var low=Object.keys(need).filter(function(k){return need[k]>((STK[k]||0)+(EDITQ[k]||0))}).map(function(k){return ITEMS.filter(function(i){return i.id==k})[0].name});
 if(low.length&&!confirm("Stock kam hai: "+low.join(", ")+". Phir bhi save karein?"))return;
@@ -238,11 +239,17 @@ function dd(k){return days[k]||(days[k]={s:0,p:0,e:0})}
 a[0].forEach(function(s){s.sale_lines.forEach(function(l){var rv=l.qty*l.rate,cs=l.cost_rate==null?0:l.qty*l.cost_rate;if(l.cost_rate==null)unk++;if(s.customer_id)cred+=rv;else walk+=rv;cost+=cs;var n=l.items.name,x=its[n]||(its[n]={q:0,r:0,p:0});x.q+=l.qty;x.r+=rv;x.p+=rv-cs;var y=dd(s.sale_date);y.s+=rv;y.p+=rv-cs})});
 var ex=0;a[1].forEach(function(e){ex+=Number(e.amount);dd(e.spent_on).e+=Number(e.amount)});
 var cp=0,sp=0;a[2].forEach(function(p){cp+=Number(p.amount)});a[3].forEach(function(p){sp+=Number(p.amount)});
-var rev=walk+cred,prof=rev-cost,net=prof-ex;
-var h=ctrl+'<h3>'+(RP.m=="d"?RP.d:g[0].slice(0,7)+" (poora mahina)")+'</h3><div class="card"><div class="mute">Kul sale</div><div class="big">'+rs(rev)+'</div><div class="mute">Walk-in '+rs(walk)+' · Udhaar '+rs(cred)+'</div></div><div class="card row"><div><div class="mute">Munafa</div><b class="grn">'+rs(prof)+'</b></div><div><div class="mute">Kharche</div><b class="red">'+rs(ex)+'</b></div><div><div class="mute">Khalis nafa</div><b class="'+(net<0?"red":"grn")+'">'+rs(net)+'</b></div></div><div class="card row"><div><div class="mute">Cash aaya</div><b>'+rs(walk+cp)+'</b></div><div><div class="mute">Cash gaya</div><b>'+rs(sp+ex)+'</b></div></div><p class="mute">Cash aaya = walk-in sale + customers ki wapsi. Cash gaya = suppliers ko adaigi + kharche.</p>'+(unk?'<div class="msg">'+unk+' sale line ki khareed ki qeemat maloom nahi, un ka munafa poora (cost 0) gina gaya hai. Pehle us item ki khareedari likhein.</div>':"");
+var rev=walk+cred,prof=rev-cost,net=prof-ex,per=RP.m=="d"?"Aaj":"Is mahine",fl=walk+cp-sp-ex;
+function Ln(l,v,c,s){return '<div class="row" style="padding:8px 0;border-bottom:1px solid var(--line)"><div>'+l+(s?'<div class="mute">'+s+'</div>':"")+'</div><b class="'+(c||"")+'" style="white-space:nowrap">'+v+'</b></div>'}
+var h=ctrl+'<h3>'+(RP.m=="d"?"Din ka hisaab: "+RP.d:"Mahine ka hisaab: "+g[0].slice(0,7))+'</h3>'+
+'<div class="card" style="text-align:center"><div class="mute">'+per+' ka khalis nafa (munafa minus kharche)</div><div class="big '+(net<0?"red":"grn")+'" style="font-size:32px">'+rs(net)+'</div></div>'+
+'<div class="card"><b>1) Nafa kaise bana</b>'+Ln("Kul sale",rs(rev),"","Walk-in "+rs(walk)+" + Udhaar "+rs(cred))+Ln("Bike hue maal ki khareed qeemat","− "+rs(cost),"red")+Ln("Munafa (sale minus khareed qeemat)",rs(prof),"grn")+Ln("Kharche","− "+rs(ex),"red")+Ln("<b>Khalis nafa</b>",rs(net),net<0?"red":"grn")+'</div>'+
+'<div class="card"><b>2) Cash ka hisaab</b><div class="mute">Sirf asli paise jo haath mein aaye ya gaye</div>'+Ln("Cash aaya",rs(walk+cp),"grn","Walk-in sale "+rs(walk)+" + customers ki wapsi "+rs(cp))+Ln("Cash gaya",rs(sp+ex),"red","Suppliers ko "+rs(sp)+" + kharche "+rs(ex))+Ln("<b>Cash ka farq</b>",rs(fl),fl<0?"red":"grn")+'</div>'+
+'<div class="card"><b>3) Udhaar</b>'+Ln("Naya udhaar diya (paise abhi nahi mile)",rs(cred))+Ln("Purane udhaar ki wapsi mili",rs(cp),"grn")+'</div>'+
+(unk?'<div class="msg">'+unk+' sale line ki khareed qeemat maloom nahi, un ka munafa poora (cost 0) gina gaya hai. Pehle us item ki khareedari likhein.</div>':"");
 var ia=Object.keys(its).sort(function(x,y){return its[y].r-its[x].r});
-h+='<h3>Konse items bike</h3>'+(ia.map(function(n){var x=its[n];return '<div class="card row"><div><b>'+esc(n)+'</b><div class="mute">'+x.q+' box</div></div><div style="text-align:right"><b>'+rs(x.r)+'</b><div class="mute">munafa '+rs(x.p)+'</div></div></div>'}).join("")||'<p class="mute">Koi sale nahi.</p>');
-if(RP.m=="m"){var ks=Object.keys(days).sort().reverse();h+='<h3>Din ba din</h3>'+ks.map(function(k){var x=days[k];return '<div class="card row"><b>'+k.slice(8)+'</b><span class="mute">sale '+rs(x.s)+' · munafa '+rs(x.p)+' · kharcha '+rs(x.e)+'</span></div>'}).join("")}
+h+='<h3>4) Konse items bike</h3>'+(ia.map(function(n){var x=its[n];return '<div class="card row"><div><b>'+esc(n)+'</b><div class="mute">'+x.q+' box bika</div></div><div style="text-align:right"><b>'+rs(x.r)+'</b><div class="mute">munafa '+rs(x.p)+'</div></div></div>'}).join("")||'<p class="mute">Koi sale nahi.</p>');
+if(RP.m=="m"){var ks=Object.keys(days).sort().reverse();h+='<h3>5) Din ba din</h3>'+ks.map(function(k){var x=days[k];return '<div class="card"><div class="row"><b>'+fmtD(k)+'</b><b>sale '+rs(x.s)+'</b></div><div class="mute">munafa '+rs(x.p)+' · kharcha '+rs(x.e)+'</div></div>'}).join("")}
 $("app").innerHTML=h}
 function x2(a,d){
 if(a=="cus"){CC=d.id;show()}
@@ -261,7 +268,7 @@ else if(a=="delexp"){if(confirm("Ye kharcha hata dein?"))api("DELETE","expenses?
 else if(a=="rpm"){RP.m=d.v;showRep()}else x3(a,d)}
 document.addEventListener("change",function(e){
 if(e.target.id=="rpd"&&e.target.value){RP.d=e.target.value;showRep();return}
-var s=e.target.closest('[data-a="spick"]');if(!s)return;var c=s.closest(".pl"),i=s.value;
+var s=e.target.closest('[data-a="spick"]');if(!s)return;var c=s.closest(".pl"),i=iidv(s.value);
 c.querySelector(".r").placeholder=LSR[i]!=null?("Rate (pichla bika "+LSR[i]+")"):"Rate";
 c.querySelector(".hint").textContent=i?("Stock: "+(STK[i]||0)+" box"):""});
 
@@ -301,7 +308,7 @@ async function delSP(id){if(!confirm("Ye adaigi hata dein?"))return;
 try{await api("DELETE","supplier_payments?id=eq."+id);await load2();showSup(SD.id)}catch(e){err(e)}}
 function fillSale(p){
 $("f1").value=p.date;$("f3").value=p.note||"";
-p.lines.forEach(function(l,i){if(i>0)$("pls").insertAdjacentHTML("beforeend",sRow());var r=document.querySelectorAll(".pl")[i];r.querySelector("select").value=l.item_id;r.querySelector(".q").value=l.qty;r.querySelector(".r").value=l.rate;r.querySelector(".hint").textContent="Stock: "+(STK[l.item_id]||0)+" box"})}
+p.lines.forEach(function(l,i){if(i>0)$("pls").insertAdjacentHTML("beforeend",sRow());var r=document.querySelectorAll(".pl")[i];r.querySelector(".it").value=(ITEMS.filter(function(i){return i.id==l.item_id})[0]||{}).name||"";r.querySelector(".q").value=l.qty;r.querySelector(".r").value=l.rate;r.querySelector(".hint").textContent="Stock: "+(STK[l.item_id]||0)+" box"})}
 async function editSale(id){
 try{var s=(await api("GET","sales?id=eq."+id+"&select=id,sale_date,note,customer_id,sale_lines(item_id,qty,rate)"))[0];saleForm(s.customer_id,{id:s.id,date:s.sale_date,note:s.note,lines:s.sale_lines})}catch(e){err(e)}}
 async function delRaw(id){
@@ -324,13 +331,14 @@ function shop(){var s={};try{s=JSON.parse(localStorage.getItem("srm_shop")||"{}"
 function shopForm(){var s=shop();modal('<h3>Dukaan ki details (statement ke liye)</h3><label>Dukaan ka naam</label><input id="f1" value="'+esc(s.n)+'"><label>Pata (address)</label><input id="f2" value="'+esc(s.a)+'" placeholder="jaise Shop #, Market, Karachi"><label>Mobile number</label><input id="f3" value="'+esc(s.p)+'"><p class="mute">Ye is device par save hoti hain. Dusre device par bhi ek baar likhni hongi.</p><p><button class="btn" data-a="shopsave">Save</button> <button class="btn g" data-a="close">Band</button></p>')}
 function fmtD(d){return d.slice(8)+"/"+d.slice(5,7)+"/"+d.slice(0,4)}
 function stmtModel(k){
-var r=[],n,p,tot,paid;
-if(k=="c"){n=CD.c.name;p=CD.c.phone;tot=CD.tot;paid=CD.paid;
-CD.s.forEach(function(s){r.push({d:s.sale_date,t:s.sale_lines.map(function(l){return l.items.name+" "+l.qty+" × "+l.rate}).join("; "),a:s.sale_lines.reduce(function(z,l){return z+l.qty*l.rate},0),o:0})});
-CD.p.forEach(function(x){r.push({d:x.paid_on,t:"Payment received"+(x.note?" – "+x.note:""),a:0,o:Number(x.amount)})})}
+var r=[],n,p,tot,paid,c=k=="c";
+if(c){n=CD.c.name;p=CD.c.phone;tot=CD.tot;paid=CD.paid;
+CD.s.forEach(function(s){r.push({d:s.sale_date,L:s.sale_lines.map(function(l){return{n:l.items.name,q:l.qty,r:l.rate,t:l.qty*l.rate}}),o:0})});
+CD.p.forEach(function(x){r.push({d:x.paid_on,L:null,o:Number(x.amount),note:x.note})})}
 else{n=SD.s.name;p=SD.s.phone;tot=SD.tot;paid=SD.paid;
-SD.pur.forEach(function(s){r.push({d:s.purchase_date,t:s.purchase_lines.map(function(l){return l.items.name+" "+l.qty+" × "+l.rate}).join("; "),a:s.purchase_lines.reduce(function(z,l){return z+l.qty*l.rate},0),o:0})});
-SD.pay.forEach(function(x){r.push({d:x.paid_on,t:"Payment made"+(x.note?" – "+x.note:""),a:0,o:Number(x.amount)})})}
+SD.pur.forEach(function(s){r.push({d:s.purchase_date,L:s.purchase_lines.map(function(l){return{n:l.items.name,q:l.qty,r:l.rate,t:l.qty*l.rate}}),o:0})});
+SD.pay.forEach(function(x){r.push({d:x.paid_on,L:null,o:Number(x.amount),note:x.note})})}
+r.forEach(function(x){x.a=x.L?x.L.reduce(function(z,l){return z+l.t},0):0});
 r.sort(function(x,y){return x.d<y.d?-1:x.d>y.d?1:(x.a>0?0:1)-(y.a>0?0:1)});
 var b=0;r.forEach(function(x){b+=x.a-x.o;x.b=b});
 return{k:k,name:n,phone:p,rows:r,tot:tot,paid:paid,bal:tot-paid}}
@@ -339,21 +347,26 @@ if(m.k=="c")return m.bal>0?"آپ کے بھروسے اور تعاون کا بہت
 return m.bal>0?"براہِ کرم اپنے ریکارڈ سے ملا لیں، اگر کوئی فرق ہو تو ہمیں ضرور بتائیں۔ آپ کے تعاون کا بہت شکریہ۔":"ہمارے ساتھ آپ کا کوئی حساب باقی نہیں۔ آپ کے تعاون کا بہت شکریہ۔"}
 function stText(m){
 var sh=shop(),c=m.k=="c",L=["السلام علیکم "+m.name+" صاحب،",sh.n+(c?" کی طرف سے آپ کا حساب:":" کی طرف سے آپ کے ساتھ ہمارا حساب:"),""];
-if(m.rows.length>20)L.push("(آخری 20 اندراجات)");
-m.rows.slice(-20).forEach(function(x){L.push(x.a?("• "+fmtD(x.d)+": "+x.t+" = "+rs(x.a)):("✔ "+fmtD(x.d)+(c?" وصولی: ":" ادائیگی: ")+rs(x.o)))});
-L.push("",(c?"کل ادھار: ":"کل مال: ")+rs(m.tot),(c?"کل وصولی: ":"کل ادائیگی: ")+rs(m.paid),"*"+(c?"باقی رقم: ":"ہماری طرف آپ کی باقی رقم: ")+rs(m.bal)+"*","",msgU(m)+" 🌿","",sh.n+(sh.p?" | "+sh.p:""));
+if(m.rows.length>12)L.push("(آخری 12 اندراجات)","");
+m.rows.slice(-12).forEach(function(x){
+if(x.L){L.push("📅 "+fmtD(x.d)+(c?" (ادھار)":" (خریداری)"));x.L.forEach(function(l,i){L.push((i+1)+". "+l.n+" | Qty "+l.q+" | Rate "+l.r+" | Total "+rs(l.t))});L.push("Bill total: "+rs(x.a),"")}
+else L.push("✔ "+fmtD(x.d)+(c?" وصولی: ":" ادائیگی: ")+rs(x.o),"")});
+L.push("━━━━━━━━",(c?"کل ادھار: ":"کل مال: ")+rs(m.tot),(c?"کل وصولی: ":"کل ادائیگی: ")+rs(m.paid),"*GRAND TOTAL - "+(c?"باقی رقم: ":"ہماری طرف آپ کی باقی رقم: ")+rs(m.bal)+"*","",msgU(m)+" 🌿","",sh.n+(sh.p?" | "+sh.p:""));
 return L.join("\n")}
 function waNum(p){var d=(p||"").replace(/\D/g,"");if(d.charAt(0)=="0")d="92"+d.slice(1);return d}
 function pdfHtml(m){
-var sh=shop(),c=m.k=="c",bc=m.bal>0?"#c0392b":"#1b7a4c",td="padding:8px 10px;border-bottom:1px solid #e3ebe5;font-size:13px;vertical-align:top";
-var rows=m.rows.map(function(x,i){return '<tr style="background:'+(i%2?"#f6faf7":"#fff")+'"><td style="'+td+'">'+fmtD(x.d)+'</td><td style="'+td+'">'+esc(x.t)+'</td><td style="'+td+';text-align:right">'+(x.a?rs(x.a):"")+'</td><td style="'+td+';text-align:right">'+(x.o?rs(x.o):"")+'</td><td style="'+td+';text-align:right;font-weight:700">'+rs(x.b)+'</td></tr>'}).join("");
-var th="padding:9px 10px;text-align:left;font-size:12px;color:#0f5132;background:#e4f1e9";
-var box=function(l,v,col){return '<div style="flex:1;border:1px solid #d3e2d8;border-radius:10px;padding:10px 12px"><div style="font-size:11px;color:#5b6c62">'+l+'</div><div style="font-size:20px;font-weight:800;color:'+(col||"#12241a")+'">'+v+'</div></div>'};
+var sh=shop(),c=m.k=="c",bc=m.bal>0?"#c0392b":"#1b7a4c",td="padding:7px 10px;border-bottom:1px solid #e3ebe5;font-size:13px;vertical-align:top";
+var rows=m.rows.map(function(x){
+if(x.L){var h='<tr><td colspan="5" style="padding:8px 10px;background:#e4f1e9;color:#0f5132;font-weight:800;font-size:13px">'+fmtD(x.d)+' — '+(c?"Udhaar":"Purchase")+'</td></tr>';
+x.L.forEach(function(l,i){h+='<tr><td style="'+td+';width:30px;color:#5b6c62">'+(i+1)+'</td><td style="'+td+'">'+esc(l.n)+'</td><td style="'+td+';text-align:right">'+l.q+'</td><td style="'+td+';text-align:right">'+rs(l.r)+'</td><td style="'+td+';text-align:right">'+rs(l.t)+'</td></tr>'});
+return h+'<tr><td colspan="4" style="'+td+';text-align:right;font-weight:700">Bill total</td><td style="'+td+';text-align:right;font-weight:800">'+rs(x.a)+'</td></tr>'}
+return '<tr><td colspan="4" style="'+td+';color:#1b7a4c;font-weight:700">'+fmtD(x.d)+' — '+(c?"Payment received":"Payment made")+(x.note?' ('+esc(x.note)+')':"")+'</td><td style="'+td+';text-align:right;color:#1b7a4c;font-weight:800">− '+rs(x.o)+'</td></tr>'}).join("");
+var th="padding:9px 10px;text-align:left;font-size:12px;color:#0f5132;background:#e4f1e9",gt=function(l,v,b,col){return '<div style="display:flex;justify-content:space-between;padding:9px 14px;'+(b?'background:'+col+';color:#fff;font-weight:800;font-size:16px':'font-size:14px;border-bottom:1px solid #e3ebe5')+'"><span>'+l+'</span><span>'+v+'</span></div>'};
 return '<div style="width:794px;background:#fff;color:#12241a;font-family:\'Plus Jakarta Sans\',system-ui,sans-serif;padding-bottom:20px"><div style="background:#0f5132;color:#fff;padding:26px 34px"><div style="font-size:32px;font-weight:800">'+esc(sh.n)+'</div><div style="font-size:13px;opacity:.9">General &amp; Herbal Wholesale</div><div style="font-size:13px;margin-top:8px">'+(sh.a?'Address: '+esc(sh.a)+' &nbsp;&nbsp; ':"")+'Mobile: '+esc(sh.p)+'</div></div>'+
 '<div style="padding:22px 34px 0"><div style="display:flex;justify-content:space-between;align-items:baseline"><div style="font-size:20px;font-weight:800">Account Statement</div><div style="font-size:13px;color:#5b6c62">Date: '+fmtD(today())+'</div></div>'+
 '<div style="margin:10px 0 14px;font-size:15px">'+(c?"Customer: ":"Supplier: ")+'<b>'+esc(m.name)+'</b>'+(m.phone?' &nbsp; Mobile: '+esc(m.phone):"")+'</div>'+
-'<div style="display:flex;gap:10px;margin-bottom:16px">'+box(c?"Total credit (Udhaar)":"Total purchases",rs(m.tot))+box(c?"Total received":"Total paid",rs(m.paid))+box("Balance due",rs(m.bal),bc)+'</div>'+
-'<table style="width:100%;border-collapse:collapse;border:1px solid #d3e2d8"><thead><tr><th style="'+th+'">Date</th><th style="'+th+'">Details</th><th style="'+th+';text-align:right">'+(c?"Udhaar":"Purchase")+'</th><th style="'+th+';text-align:right">'+(c?"Received":"Paid")+'</th><th style="'+th+';text-align:right">Balance</th></tr></thead><tbody>'+rows+'</tbody></table>'+
+'<table style="width:100%;border-collapse:collapse;border:1px solid #d3e2d8"><thead><tr><th style="'+th+'">#</th><th style="'+th+'">Item</th><th style="'+th+';text-align:right">Qty</th><th style="'+th+';text-align:right">Rate</th><th style="'+th+';text-align:right">Total</th></tr></thead><tbody>'+rows+'</tbody></table>'+
+'<div style="margin:16px 0 0 auto;width:360px;border:1px solid #d3e2d8;border-radius:10px;overflow:hidden">'+gt(c?"Total credit (Udhaar)":"Total purchases",rs(m.tot))+gt(c?"Total received":"Total paid","− "+rs(m.paid))+gt("GRAND TOTAL (Balance due)",rs(m.bal),1,bc)+'</div>'+
 '<div dir="rtl" style="margin-top:20px;background:#f3f8f4;border-right:5px solid #0f5132;border-radius:8px;padding:12px 16px;font-family:\'Noto Nastaliq Urdu\',\'Noto Naskh Arabic\',serif;font-size:15px;line-height:2.3">السلام علیکم '+esc(m.name)+' صاحب،<br>'+msgU(m)+'</div>'+
 '<div style="margin-top:18px;text-align:center;font-size:12px;color:#5b6c62">Thank you for your business · '+esc(sh.n)+' · '+esc(sh.p)+'</div></div></div>'}
 function lib(u){return new Promise(function(ok,no){var s=document.createElement("script");s.src=u;s.onload=ok;s.onerror=function(){no(new Error("Library load nahi hui. Internet check karein."))};document.head.appendChild(s)})}
@@ -381,7 +394,54 @@ else if(a=="shopsave"){try{localStorage.setItem("srm_shop",JSON.stringify({n:$("
 else if(a=="stpdf")stPdf(stmtModel(d.k));
 else if(a=="sttxt"){var m=stmtModel(d.k),n=waNum(m.phone);if(!n)return alert("Is ka number nahi likha.");window.open("https://wa.me/"+n+"?text="+encodeURIComponent(stText(m)),"_blank")}
 else if(a=="pdfshare")pdfShare();
-else if(a=="pdfdl")pdfDl()}
+else if(a=="pdfdl")pdfDl();
+else if(a=="bill")billMake(d.id);
+else if(a=="billcopy")billCopy();
+else if(a=="billwa")billWa()}
+
+function fillDL(){var d=$("itl");if(d)d.innerHTML=ITEMS.map(function(i){return '<option value="'+esc(i.name)+'">'}).join("")}
+function iidv(v){v=String(v||"").trim().toLowerCase();var m=ITEMS.filter(function(i){return i.name.toLowerCase()==v})[0];return m?m.id:0}
+function iid(r){return iidv(r.querySelector(".it").value)}
+function dash(){var cu=0,sp=0;CUS.forEach(function(c){var b=CB[c.id]||0;if(b>0)cu+=b});SUPS.forEach(function(s){var b=SB[s.id]||0;if(b>0)sp+=b});
+return '<div class="row" style="gap:8px;margin:10px 0"><div class="card" style="flex:1;margin:0"><div class="mute">Customers se lena hai</div><div class="big grn">'+rs(cu)+'</div></div><div class="card" style="flex:1;margin:0"><div class="mute">Parties ko dena hai</div><div class="big red">'+rs(sp)+'</div></div></div>'}
+document.addEventListener("input",function(e){var t=e.target;if(t.matches&&t.matches('[data-a="pick"],[data-a="spick"]'))t.dispatchEvent(new Event("change",{bubbles:true}))});
+
+function billNo(s){return s.sale_date.replace(/-/g,"")+"-"+("0000"+s.id).slice(-4)}
+function billDt(s){var d=new Date(s.created_at||s.sale_date),M=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],p=function(n){return ("0"+n).slice(-2)};return p(d.getDate())+" "+M[d.getMonth()]+" "+d.getFullYear()+" "+p(d.getHours())+":"+p(d.getMinutes())}
+function billTot(s){var q=0,t=0;s.sale_lines.forEach(function(l){q+=Number(l.qty);t+=l.qty*l.rate});return{q:q,t:t}}
+function billHtml(s){
+var sh=shop(),T=billTot(s),cu=s.customers,dv='<div style="border-top:1px dashed #777;margin:8px 0"></div>',row=function(l,v,b){return '<div style="display:flex;justify-content:space-between;'+(b?'font-weight:800;font-size:16px;':'')+'"><span>'+l+'</span><span>'+v+'</span></div>'};
+var items=s.sale_lines.map(function(l,i){return '<div style="margin-top:8px"><div style="font-weight:700">'+(i+1)+'. '+esc(l.items.name)+'</div><div style="display:flex;justify-content:space-between;color:#333"><span>Qty '+l.qty+'</span><span>Price '+rs(l.rate)+'</span><b>'+rs(l.qty*l.rate)+'</b></div></div>'}).join("");
+return '<div style="width:380px;background:#fff;color:#111;font-family:\'Plus Jakarta Sans\',system-ui,sans-serif;padding:20px 18px 18px;font-size:13px"><div style="text-align:center"><div style="font-size:24px;font-weight:800">'+esc(sh.n)+'</div><div>Karachi'+(sh.a?' · '+esc(sh.a):'')+'</div><div>Mobile: '+esc(sh.p)+'</div></div>'+dv+
+'<div>CUSTOMER: <b>'+(cu?esc(cu.name)+(cu.phone?' ('+esc(cu.phone)+')':""):"Walk-in Customer")+'</b></div><div>INVOICE NO: <b>'+billNo(s)+'</b></div><div>DATE: '+billDt(s)+'</div>'+(cu?'<div>TYPE: Udhaar (credit)</div>':"")+dv+
+'<div style="display:flex;justify-content:space-between;font-weight:800;font-size:12px"><span>ITEM / QTY</span><span>PRICE · TOTAL</span></div>'+items+dv+
+row("QUANTITY",T.q)+row("SUB-TOTAL",rs(T.t))+'<div style="border-top:1px solid #111;margin:6px 0"></div>'+row("AMOUNT DUE",rs(T.t),1)+
+(cu?'<div style="margin-top:8px;padding:8px;background:#f3f3f3;border-radius:6px">'+row("Account ka kul baqi",rs(CB[s.customer_id]||0),0)+'</div>':"")+
+(s.note?'<div style="margin-top:6px;color:#444">Note: '+esc(s.note)+'</div>':"")+dv+'<div style="text-align:center">Shukriya! Thank you for your business.</div></div>'}
+function billText(s){
+var sh=shop(),T=billTot(s),cu=s.customers,L=["*"+sh.n+"*","Karachi · "+sh.p,"","Customer: "+(cu?cu.name:"Walk-in"),"Invoice: "+billNo(s),"Date: "+billDt(s),""];
+s.sale_lines.forEach(function(l,i){L.push((i+1)+". "+l.items.name+" | Qty "+l.qty+" | Price "+l.rate+" | Total "+rs(l.qty*l.rate))});
+L.push("","Quantity: "+T.q,"*AMOUNT DUE: "+rs(T.t)+"*");
+if(cu)L.push("Account ka kul baqi: "+rs(CB[s.customer_id]||0));
+L.push("","Shukriya! "+sh.n);return L.join("\n")}
+async function billMake(id){
+modal('<p>Bill ban raha hai… thora intezar karein.</p>');
+try{
+var s=(await api("GET","sales?id=eq."+id+"&select=id,sale_date,created_at,note,customer_id,customers(name,phone),sale_lines(qty,rate,items(name))"))[0];
+if(!window.html2canvas)await lib("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js");
+if(!window.jspdf)await lib("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+var el=document.createElement("div");el.style.cssText="position:fixed;left:-10000px;top:0;width:380px";el.innerHTML=billHtml(s);document.body.appendChild(el);
+try{await document.fonts.ready}catch(e){}
+var cv=await html2canvas(el,{scale:3,backgroundColor:"#ffffff"});el.remove();
+var pdf=new window.jspdf.jsPDF({unit:"mm",format:[80,Math.max(60,80*cv.height/cv.width)]});
+pdf.addImage(cv.toDataURL("image/jpeg",.92),"JPEG",0,0,80,80*cv.height/cv.width);
+PDFF=new File([pdf.output("blob")],"Bill-"+billNo(s)+".pdf",{type:"application/pdf"});PDFF.txt=billText(s);PDFF.phone=s.customers&&s.customers.phone;
+modal('<h3>Bill tayyar hai ✅</h3><p class="mute">'+esc(PDFF.name)+'</p><p><button class="btn" style="width:100%;background:#25d366;color:#05260f" data-a="pdfshare">📤 Bill share karein (PDF)</button></p>'+(PDFF.phone?'<p><button class="btn g" style="width:100%" data-a="billwa">💬 Customer ko text bhejein</button></p>':"")+'<p><button class="btn g" style="width:100%" data-a="billcopy">📋 Text copy karein</button> </p><p><button class="btn g" style="width:100%" data-a="pdfdl">⬇ Download</button></p><p><button class="btn g" data-a="close">Band</button></p>')}
+catch(e){closeM();err(e)}}
+function billWa(){var n=waNum(PDFF.phone);if(n)window.open("https://wa.me/"+n+"?text="+encodeURIComponent(PDFF.txt),"_blank")}
+function billCopy(){var t=PDFF.txt;function ok(){alert("Text copy ho gaya.")}
+function fb(){var a=document.createElement("textarea");a.value=t;document.body.appendChild(a);a.select();try{document.execCommand("copy");ok()}catch(e){}a.remove()}
+try{navigator.clipboard.writeText(t).then(ok,fb)}catch(e){fb()}}
 
 boot();
 </script>
