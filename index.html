@@ -125,7 +125,7 @@ try{await api("POST","purchase_lines",ls.map(function(l){return{purchase_id:p.id
 closeM();await load2();showSup(SD.id)}catch(e){err(e)}}
 async function backup(){
 var tb=["items","suppliers","customers","purchases","purchase_lines","supplier_payments","customer_payments","sales","sale_lines","expenses"],o={saved_at:new Date().toISOString()};
-try{for(var i=0;i<tb.length;i++)o[tb[i]]=await api("GET",tb[i]+"?select=*");
+try{for(var i=0;i<tb.length;i++)o[tb[i]]=await apiAll(tb[i]+"?select=*&order=id");
 var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(o)],{type:"application/json"}));a.download="srm-backup-"+today()+".json";a.click()}catch(e){err(e)}}
 async function login(){
 $("lerr").innerHTML="";
@@ -154,10 +154,16 @@ else if(a=="close")closeM();else x2(a,d)});
 var CC=null,STK={},CB={},SB={},LSR={},CD=null,SALEC=null,RP={m:"d",d:today()};
 function bal(n){return '<span class="'+(n>0?"red":"grn")+'"><b>'+rs(n)+'</b></span>'}
 function srt(x,y){var a=x.purchases.purchase_date,b=y.purchases.purchase_date;return a<b?-1:a>b?1:x.id-y.id}
+async function apiAll(p){var o=[],n=0,r;do{r=await api("GET",p+"&limit=1000&offset="+n);o=o.concat(r);n+=1000}while(r.length==1000);return o}
+var BAT={};
 async function load2(){
-var a=await Promise.all([api("GET","purchase_lines?select=item_id,qty_left,expiry_date,items(name)"),api("GET","sales?customer_id=not.is.null&select=customer_id,sale_lines(qty,rate)"),api("GET","customer_payments?select=customer_id,amount"),api("GET","purchases?select=supplier_id,purchase_lines(qty,rate)"),api("GET","supplier_payments?select=supplier_id,amount"),api("GET","sale_lines?select=item_id,rate&order=id.desc&limit=300")]);
-STK={};CB={};SB={};LSR={};
-a[0].forEach(function(l){STK[l.item_id]=(STK[l.item_id]||0)+Number(l.qty_left)});EXP=a[0].filter(function(l){return Number(l.qty_left)>0&&l.expiry_date}).sort(function(x,y){return x.expiry_date<y.expiry_date?-1:1});
+var a=await Promise.all([apiAll("purchase_lines?select=id,item_id,purchase_id,qty,rate,expiry_date,items(name),purchases(purchase_date)&order=id"),apiAll("sales?customer_id=not.is.null&select=customer_id,sale_lines(qty,rate)&order=id"),apiAll("customer_payments?select=customer_id,amount&order=id"),apiAll("purchases?select=supplier_id,purchase_lines(qty,rate)&order=id"),apiAll("supplier_payments?select=supplier_id,amount&order=id"),api("GET","sale_lines?select=item_id,rate&order=id.desc&limit=300"),apiAll("sale_lines?select=item_id,qty&order=id")]);
+STK={};CB={};SB={};LSR={};BAT={};EXP=[];
+var sold={};a[6].forEach(function(l){sold[l.item_id]=(sold[l.item_id]||0)+Number(l.qty)});
+a[0].forEach(function(l){(BAT[l.item_id]=BAT[l.item_id]||[]).push({id:l.id,pid:l.purchase_id,qty:Number(l.qty),rate:Number(l.rate),exp:l.expiry_date,name:l.items.name,d:l.purchases.purchase_date,rem:Number(l.qty)})});
+Object.keys(BAT).forEach(function(k){var b=BAT[k].sort(function(x,y){return x.d<y.d?-1:x.d>y.d?1:x.id-y.id}),s=sold[k]||0,tot=0;b.forEach(function(x){var q=Math.min(s,x.qty);x.rem=x.qty-q;s-=q;tot+=x.qty;if(x.rem>0&&x.exp)EXP.push({items:{name:x.name},qty_left:x.rem,expiry_date:x.exp})});STK[k]=tot-(sold[k]||0)});
+Object.keys(sold).forEach(function(k){if(!(k in STK))STK[k]=-sold[k]});
+EXP.sort(function(x,y){return x.expiry_date<y.expiry_date?-1:1});
 a[1].forEach(function(s){s.sale_lines.forEach(function(l){CB[s.customer_id]=(CB[s.customer_id]||0)+l.qty*l.rate})});
 a[2].forEach(function(p){CB[p.customer_id]=(CB[p.customer_id]||0)-Number(p.amount)});
 a[3].forEach(function(s){s.purchase_lines.forEach(function(l){SB[s.supplier_id]=(SB[s.supplier_id]||0)+l.qty*l.rate})});
@@ -192,10 +198,10 @@ if(!ITEMS.length)return alert("Pehle Maal tab mein items add karein.");SALEC=c||
 modal('<h3>'+(c?"Udhaar entry":"Walk-in sale (din ka total)")+'</h3><label>Tareekh</label><input id="f1" type="date" value="'+today()+'"><label>Note (optional)</label><input id="f3"><div id="pls">'+sRow()+'</div><p><button class="btn g" data-a="addsrow">+ Aur item</button></p><p class="mute">Ek hi item alag rate par bika ho to alag line likhein.</p><p><button class="btn" data-a="salesave">Save</button> <button class="btn g" data-a="close">Band</button></p>');if(pre)fillSale(pre)}
 var BT,PT;
 async function costOf(l){
-if(!BT[l.item_id]){var b=await api("GET","purchase_lines?item_id=eq."+l.item_id+"&qty_left=gt.0&select=id,qty_left,rate,purchases(purchase_date)");b.sort(srt);BT[l.item_id]=b}
-var need=l.qty,cost=0,b2=BT[l.item_id];
-for(var i=0;i<b2.length&&need>0;i++){var t=Math.min(need,Number(b2[i].qty_left));if(t<=0)continue;cost+=t*b2[i].rate;b2[i].qty_left=Number(b2[i].qty_left)-t;PT[b2[i].id]=b2[i].qty_left;need-=t}
-if(need>0){var f=await api("GET","purchase_lines?item_id=eq."+l.item_id+"&select=rate&order=id.desc&limit=1");if(f.length){cost+=need*f[0].rate;need=0}}
+if(!BT[l.item_id])BT[l.item_id]=(BAT[l.item_id]||[]).map(function(x){return{rem:x.rem,rate:x.rate}});
+var need=l.qty,cost=0,b=BT[l.item_id];
+for(var i=0;i<b.length&&need>0;i++){var q=Math.min(need,b[i].rem);if(q<=0)continue;cost+=q*b[i].rate;b[i].rem-=q;need-=q}
+if(need>0&&b.length){cost+=need*b[b.length-1].rate;need=0}
 var cov=l.qty-need;return cov>0?cost/cov:null}
 async function saleSave(){
 var ls=[].slice.call(document.querySelectorAll(".pl")).map(function(r){return{item_id:iid(r),qty:parseFloat(r.querySelector(".q").value),rate:parseFloat(r.querySelector(".r").value)}}).filter(function(l){return l.item_id||l.qty||l.rate});
@@ -203,19 +209,14 @@ if(!ls.length||ls.some(function(l){return !l.item_id||!(l.qty>0)||!(l.rate>=0)})
 var need={};ls.forEach(function(l){need[l.item_id]=(need[l.item_id]||0)+l.qty});
 var low=Object.keys(need).filter(function(k){return need[k]>((STK[k]||0)+(EDITQ[k]||0))}).map(function(k){return ITEMS.filter(function(i){return i.id==k})[0].name});
 if(low.length&&!confirm("Stock kam hai: "+low.join(", ")+". Phir bhi save karein?"))return;
-if(EDIT){try{await delRaw(EDIT);EDIT=null;EDITQ={}}catch(e){return err(e)}}BT={};PT={};var s;
+if(EDIT){try{await delRaw(EDIT);EDIT=null;EDITQ={};await load2()}catch(e){return err(e)}}BT={};var s;
 try{s=(await api("POST","sales",{sale_date:$("f1").value,customer_id:SALEC,note:$("f3").value.trim()||null}))[0];
 try{var rows=[];for(var i=0;i<ls.length;i++){var cr=await costOf(ls[i]);rows.push({sale_id:s.id,item_id:ls[i].item_id,qty:ls[i].qty,rate:ls[i].rate,cost_rate:cr==null?null:Math.round(cr*100)/100})}
 await api("POST","sale_lines",rows)}catch(e){await api("DELETE","sales?id=eq."+s.id).catch(function(){});throw e}
-for(var k in PT){try{await api("PATCH","purchase_lines?id=eq."+k,{qty_left:PT[k]})}catch(e){alert("Sale save ho gayi, lekin stock update nahi hua: "+e.message)}}
 closeM();await load2();if(CC)showCusD(CC);else show()}catch(e){err(e)}}
-async function restore(it,q){
-var b=await api("GET","purchase_lines?item_id=eq."+it+"&select=id,qty,qty_left,purchases(purchase_date)");b.sort(srt);
-for(var i=0;i<b.length&&q>0;i++){var room=Number(b[i].qty)-Number(b[i].qty_left);if(room<=0)continue;var t=Math.min(room,q);await api("PATCH","purchase_lines?id=eq."+b[i].id,{qty_left:Number(b[i].qty_left)+t});q-=t}}
 async function delSale(id){
-if(!confirm("Ye sale hata dein? Stock wapas jama ho jayega."))return;
-try{var l=await api("GET","sale_lines?sale_id=eq."+id+"&select=item_id,qty");for(var i=0;i<l.length;i++)await restore(l[i].item_id,Number(l[i].qty));
-await api("DELETE","sales?id=eq."+id);await load2();if(CC)showCusD(CC);else show()}catch(e){err(e)}}
+if(!confirm("Ye sale hata dein? Stock khud wapas theek ho jayega."))return;
+try{await api("DELETE","sales?id=eq."+id);await load2();if(CC)showCusD(CC);else show()}catch(e){err(e)}}
 async function showSale(){
 $("app").innerHTML='<p class="mute">Load ho raha hai…</p>';
 try{var r=await api("GET","sales?customer_id=is.null&select=id,sale_date,note,sale_lines(qty,rate,items(name))&order=sale_date.desc,id.desc&limit=40")}catch(e){return err(e)}
@@ -233,23 +234,29 @@ async function showRep(){
 var g=RP.m=="d"?[RP.d,RP.d]:mrange(RP.d);
 var ctrl='<div class="card row"><span><button class="btn'+(RP.m=="d"?"":" g")+'" data-a="rpm" data-v="d">Din</button> <button class="btn'+(RP.m=="m"?"":" g")+'" data-a="rpm" data-v="m">Mahina</button></span><input id="rpd" type="date" value="'+RP.d+'" style="width:auto"></div>';
 $("app").innerHTML=ctrl+'<p class="mute">Load ho raha hai…</p>';
-try{var a=await Promise.all([api("GET","sales?sale_date=gte."+g[0]+"&sale_date=lte."+g[1]+"&select=sale_date,customer_id,sale_lines(qty,rate,cost_rate,items(name))"),api("GET","expenses?spent_on=gte."+g[0]+"&spent_on=lte."+g[1]+"&select=spent_on,amount"),api("GET","customer_payments?paid_on=gte."+g[0]+"&paid_on=lte."+g[1]+"&select=amount"),api("GET","supplier_payments?paid_on=gte."+g[0]+"&paid_on=lte."+g[1]+"&select=amount")])}catch(e){return err(e)}
+try{var a=await Promise.all([api("GET","sales?sale_date=gte."+g[0]+"&sale_date=lte."+g[1]+"&select=sale_date,customer_id,sale_lines(qty,rate,cost_rate,items(name))"),api("GET","expenses?spent_on=gte."+g[0]+"&spent_on=lte."+g[1]+"&select=spent_on,amount"),api("GET","customer_payments?paid_on=gte."+g[0]+"&paid_on=lte."+g[1]+"&select=amount"),api("GET","supplier_payments?paid_on=gte."+g[0]+"&paid_on=lte."+g[1]+"&select=amount"),api("GET","purchases?purchase_date=gte."+g[0]+"&purchase_date=lte."+g[1]+"&select=purchase_lines(qty,rate)")])}catch(e){return err(e)}
 var walk=0,cred=0,cost=0,unk=0,its={},days={};
 function dd(k){return days[k]||(days[k]={s:0,p:0,e:0})}
 a[0].forEach(function(s){s.sale_lines.forEach(function(l){var rv=l.qty*l.rate,cs=l.cost_rate==null?0:l.qty*l.cost_rate;if(l.cost_rate==null)unk++;if(s.customer_id)cred+=rv;else walk+=rv;cost+=cs;var n=l.items.name,x=its[n]||(its[n]={q:0,r:0,p:0});x.q+=l.qty;x.r+=rv;x.p+=rv-cs;var y=dd(s.sale_date);y.s+=rv;y.p+=rv-cs})});
 var ex=0;a[1].forEach(function(e){ex+=Number(e.amount);dd(e.spent_on).e+=Number(e.amount)});
-var cp=0,sp=0;a[2].forEach(function(p){cp+=Number(p.amount)});a[3].forEach(function(p){sp+=Number(p.amount)});
-var rev=walk+cred,prof=rev-cost,net=prof-ex,per=RP.m=="d"?"Aaj":"Is mahine",fl=walk+cp-sp-ex;
-function Ln(l,v,c,s){return '<div class="row" style="padding:8px 0;border-bottom:1px solid var(--line)"><div>'+l+(s?'<div class="mute">'+s+'</div>':"")+'</div><b class="'+(c||"")+'" style="white-space:nowrap">'+v+'</b></div>'}
+var cp=0,sp=0;a[2].forEach(function(p){cp+=Number(p.amount)});a[3].forEach(function(p){sp+=Number(p.amount)});var pu=0;a[4].forEach(function(p){p.purchase_lines.forEach(function(l){pu+=l.qty*l.rate})});
+var rev=walk+cred,prof=rev-cost,net=prof-ex,per=RP.m=="d"?"Aaj":"Is mahine";
+function Ln(l,v,c,s){return '<div class="row" style="padding:9px 0;border-bottom:1px solid var(--line)"><div>'+l+(s?'<div class="mute">'+s+'</div>':"")+'</div><b class="'+(c||"")+'" style="white-space:nowrap">'+v+'</b></div>'}
 var h=ctrl+'<h3>'+(RP.m=="d"?"Din ka hisaab: "+RP.d:"Mahine ka hisaab: "+g[0].slice(0,7))+'</h3>'+
 '<div class="card" style="text-align:center"><div class="mute">'+per+' ka khalis nafa (munafa minus kharche)</div><div class="big '+(net<0?"red":"grn")+'" style="font-size:32px">'+rs(net)+'</div></div>'+
-'<div class="card"><b>1) Nafa kaise bana</b>'+Ln("Kul sale",rs(rev),"","Walk-in "+rs(walk)+" + Udhaar "+rs(cred))+Ln("Bike hue maal ki khareed qeemat","− "+rs(cost),"red")+Ln("Munafa (sale minus khareed qeemat)",rs(prof),"grn")+Ln("Kharche","− "+rs(ex),"red")+Ln("<b>Khalis nafa</b>",rs(net),net<0?"red":"grn")+'</div>'+
-'<div class="card"><b>2) Cash ka hisaab</b><div class="mute">Sirf asli paise jo haath mein aaye ya gaye</div>'+Ln("Cash aaya",rs(walk+cp),"grn","Walk-in sale "+rs(walk)+" + customers ki wapsi "+rs(cp))+Ln("Cash gaya",rs(sp+ex),"red","Suppliers ko "+rs(sp)+" + kharche "+rs(ex))+Ln("<b>Cash ka farq</b>",rs(fl),fl<0?"red":"grn")+'</div>'+
-'<div class="card"><b>3) Udhaar</b>'+Ln("Naya udhaar diya (paise abhi nahi mile)",rs(cred))+Ln("Purane udhaar ki wapsi mili",rs(cp),"grn")+'</div>'+
+'<div class="card"><b>Ek nazar mein</b>'+
+Ln("Kul sale (maal bika)",rs(rev),"","Walk-in cash "+rs(walk)+" + Udhaar "+rs(cred))+
+Ln("Paise aaye",rs(walk+cp),"grn","Walk-in sale "+rs(walk)+" + customers ki wapsi "+rs(cp))+
+Ln("Udhaar diya (paise abhi baqi)",rs(cred),"red")+
+Ln("Maal khareeda (purchase)",rs(pu),"","Jo maal is muddat mein liya")+
+Ln("Suppliers ko paise diye",rs(sp))+
+Ln("Kharche",rs(ex),"red")+
+Ln("Munafa (sale minus khareed qeemat)",rs(prof),"grn","Sirf bike hue maal ka munafa")+
+Ln("<b>Khalis nafa (munafa minus kharche)</b>",rs(net),net<0?"red":"grn")+'</div>'+
 (unk?'<div class="msg">'+unk+' sale line ki khareed qeemat maloom nahi, un ka munafa poora (cost 0) gina gaya hai. Pehle us item ki khareedari likhein.</div>':"");
 var ia=Object.keys(its).sort(function(x,y){return its[y].r-its[x].r});
-h+='<h3>4) Konse items bike</h3>'+(ia.map(function(n){var x=its[n];return '<div class="card row"><div><b>'+esc(n)+'</b><div class="mute">'+x.q+' box bika</div></div><div style="text-align:right"><b>'+rs(x.r)+'</b><div class="mute">munafa '+rs(x.p)+'</div></div></div>'}).join("")||'<p class="mute">Koi sale nahi.</p>');
-if(RP.m=="m"){var ks=Object.keys(days).sort().reverse();h+='<h3>5) Din ba din</h3>'+ks.map(function(k){var x=days[k];return '<div class="card"><div class="row"><b>'+fmtD(k)+'</b><b>sale '+rs(x.s)+'</b></div><div class="mute">munafa '+rs(x.p)+' · kharcha '+rs(x.e)+'</div></div>'}).join("")}
+h+='<h3>Konse items bike</h3>'+(ia.map(function(n){var x=its[n];return '<div class="card row"><div><b>'+esc(n)+'</b><div class="mute">'+x.q+' bika</div></div><div style="text-align:right"><b>'+rs(x.r)+'</b><div class="mute">munafa '+rs(x.p)+'</div></div></div>'}).join("")||'<p class="mute">Koi sale nahi.</p>');
+if(RP.m=="m"){var ks=Object.keys(days).sort().reverse();h+='<h3>Din ba din</h3>'+ks.map(function(k){var x=days[k];return '<div class="card"><div class="row"><b>'+fmtD(k)+'</b><b>sale '+rs(x.s)+'</b></div><div class="mute">munafa '+rs(x.p)+' · kharcha '+rs(x.e)+'</div></div>'}).join("")}
 $("app").innerHTML=h}
 function x2(a,d){
 if(a=="cus"){CC=d.id;show()}
@@ -300,8 +307,8 @@ ev.sort(function(x,y){return x.d<y.d?-1:x.d>y.d?1:0});var skip=ev.length>20;ev=e
 var m="Assalam o Alaikum "+s.name+",\nGhousia Traders ki taraf se hisaab:\n\n"+(skip?"(aakhri 20 entries)\n":"")+ev.map(function(x){return x.t}).join("\n")+"\n\nKul maal: "+rs(SD.tot)+"\nKul adaigi: "+rs(SD.paid)+"\n*Baqi: "+rs(SD.tot-SD.paid)+"*\n\nShukriya.";
 window.open("https://wa.me/"+d+"?text="+encodeURIComponent(m),"_blank")}
 async function delPur(id){
-try{var l=await api("GET","purchase_lines?purchase_id=eq."+id+"&select=qty,qty_left");
-if(l.some(function(x){return Number(x.qty_left)<Number(x.qty)}))return alert("Is khareedari ka kuch maal bik chuka hai, isliye hata nahi sakte.");
+try{var sold=false;Object.keys(BAT).forEach(function(k){BAT[k].forEach(function(x){if(x.pid==id&&x.rem<x.qty)sold=true})});
+if(sold)return alert("Is khareedari ka kuch maal bik chuka hai, isliye hata nahi sakte.");
 if(!confirm("Ye khareedari hata dein?"))return;
 await api("DELETE","purchases?id=eq."+id);await load2();showSup(SD.id)}catch(e){err(e)}}
 async function delSP(id){if(!confirm("Ye adaigi hata dein?"))return;
@@ -311,10 +318,7 @@ $("f1").value=p.date;$("f3").value=p.note||"";
 p.lines.forEach(function(l,i){if(i>0)$("pls").insertAdjacentHTML("beforeend",sRow());var r=document.querySelectorAll(".pl")[i];r.querySelector(".it").value=(ITEMS.filter(function(i){return i.id==l.item_id})[0]||{}).name||"";r.querySelector(".q").value=l.qty;r.querySelector(".r").value=l.rate;r.querySelector(".hint").textContent="Stock: "+(STK[l.item_id]||0)+" box"})}
 async function editSale(id){
 try{var s=(await api("GET","sales?id=eq."+id+"&select=id,sale_date,note,customer_id,sale_lines(item_id,qty,rate)"))[0];saleForm(s.customer_id,{id:s.id,date:s.sale_date,note:s.note,lines:s.sale_lines})}catch(e){err(e)}}
-async function delRaw(id){
-var l=await api("GET","sale_lines?sale_id=eq."+id+"&select=item_id,qty");
-for(var i=0;i<l.length;i++)await restore(l[i].item_id,Number(l[i].qty));
-await api("DELETE","sales?id=eq."+id)}
+async function delRaw(id){await api("DELETE","sales?id=eq."+id)}
 function x3(a,d){
 if(a=="pedit")pedit(d.t,d.id);
 else if(a=="peditsave")peditSave(d.t,d.id);
@@ -397,7 +401,8 @@ else if(a=="pdfshare")pdfShare();
 else if(a=="pdfdl")pdfDl();
 else if(a=="bill")billMake(d.id);
 else if(a=="billcopy")billCopy();
-else if(a=="billwa")billWa()}
+else if(a=="billwa")billWa();
+else if(a=="billprint")billPrint()}
 
 function fillDL(){var d=$("itl");if(d)d.innerHTML=ITEMS.map(function(i){return '<option value="'+esc(i.name)+'">'}).join("")}
 function iidv(v){v=String(v||"").trim().toLowerCase();var m=ITEMS.filter(function(i){return i.name.toLowerCase()==v})[0];return m?m.id:0}
@@ -435,9 +440,13 @@ try{await document.fonts.ready}catch(e){}
 var cv=await html2canvas(el,{scale:3,backgroundColor:"#ffffff"});el.remove();
 var pdf=new window.jspdf.jsPDF({unit:"mm",format:[80,Math.max(60,80*cv.height/cv.width)]});
 pdf.addImage(cv.toDataURL("image/jpeg",.92),"JPEG",0,0,80,80*cv.height/cv.width);
-PDFF=new File([pdf.output("blob")],"Bill-"+billNo(s)+".pdf",{type:"application/pdf"});PDFF.txt=billText(s);PDFF.phone=s.customers&&s.customers.phone;
-modal('<h3>Bill tayyar hai ✅</h3><p class="mute">'+esc(PDFF.name)+'</p><p><button class="btn" style="width:100%;background:#25d366;color:#05260f" data-a="pdfshare">📤 Bill share karein (PDF)</button></p>'+(PDFF.phone?'<p><button class="btn g" style="width:100%" data-a="billwa">💬 Customer ko text bhejein</button></p>':"")+'<p><button class="btn g" style="width:100%" data-a="billcopy">📋 Text copy karein</button> </p><p><button class="btn g" style="width:100%" data-a="pdfdl">⬇ Download</button></p><p><button class="btn g" data-a="close">Band</button></p>')}
+PDFF=new File([pdf.output("blob")],"Bill-"+billNo(s)+".pdf",{type:"application/pdf"});PDFF.txt=billText(s);PDFF.bh=billHtml(s);PDFF.phone=s.customers&&s.customers.phone;
+modal('<h3>Bill tayyar hai ✅</h3><p class="mute">'+esc(PDFF.name)+'</p><p><button class="btn" style="width:100%;background:#25d366;color:#05260f" data-a="pdfshare">📤 Bill share karein (PDF)</button></p>'+(PDFF.phone?'<p><button class="btn g" style="width:100%" data-a="billwa">💬 Customer ko text bhejein</button></p>':"")+'<p><button class="btn g" style="width:100%" data-a="billcopy">📋 Text copy karein</button> </p><p><button class="btn g" style="width:100%" data-a="billprint">🖨 Print karein</button></p><p><button class="btn g" style="width:100%" data-a="pdfdl">⬇ Download</button></p><p><button class="btn g" data-a="close">Band</button></p>')}
 catch(e){closeM();err(e)}}
+function billPrint(){
+var f=document.createElement("iframe");f.style.cssText="position:fixed;width:0;height:0;border:0;left:-100px";document.body.appendChild(f);
+var d=f.contentWindow.document;d.open();d.write('<html><head><meta charset="utf-8"><style>@page{size:80mm auto;margin:0}body{margin:0}</style></head><body><div style="width:380px;zoom:.79">'+PDFF.bh+'</div></body></html>');d.close();
+setTimeout(function(){try{f.contentWindow.focus();f.contentWindow.print()}catch(e){alert("Print shuru nahi hua. PDF share/download kar ke us se print karein.")}setTimeout(function(){f.remove()},60000)},500)}
 function billWa(){var n=waNum(PDFF.phone);if(n)window.open("https://wa.me/"+n+"?text="+encodeURIComponent(PDFF.txt),"_blank")}
 function billCopy(){var t=PDFF.txt;function ok(){alert("Text copy ho gaya.")}
 function fb(){var a=document.createElement("textarea");a.value=t;document.body.appendChild(a);a.select();try{document.execCommand("copy");ok()}catch(e){}a.remove()}
