@@ -475,15 +475,22 @@ f=ITEMS.filter(function(i){return i.name.toLowerCase()===q});if(f.length)return 
 f=ITEMS.filter(function(i){return i.name.toLowerCase().indexOf(q)>-1});return f.length==1?f[0]:null}
 function nbOpen(){
 NB={l:[],m:"cash"};
-modal('<h3>🧾 Naya Bill</h3><label>Customer (khali = Walk-in)</label><input id="nbc" list="cusl" placeholder="Walk-in" autocomplete="off"><datalist id="cusl">'+CUS.map(function(c){return '<option value="'+esc(c.name)+'">'}).join("")+'</datalist><label>Item (naam / code / barcode)</label><div style="display:flex;gap:6px"><input id="nbi" list="itl" placeholder="Likhein ya scan karein" autocomplete="off"><button class="btn" data-a="nbadd">Add</button><button class="btn g" data-a="nbscan">📷</button></div><div id="nbl"></div><label>Discount (Rs ya %, jaise 50 ya 5%)</label><input id="nbd" placeholder="0" inputmode="decimal"><label>Payment</label><div class="mode" style="display:flex;gap:6px" id="nbm"></div><div id="nbp"></div><div id="nbs" class="card"></div><p><button class="btn" style="width:100%;font-size:16px;padding:14px" data-a="nbsave">✅ Bill banayein</button></p><p><button class="btn g" data-a="close">Band</button></p>');
+modal('<h3>🧾 Naya Bill</h3><label>Customer (khali = Walk-in)</label><input id="nbc" list="cusl" placeholder="Walk-in" autocomplete="off"><datalist id="cusl">'+CUS.map(function(c){return '<option value="'+esc(c.name)+'">'}).join("")+'</datalist><label>Item (naam / code / barcode)</label><div style="display:flex;gap:6px"><input id="nbi" placeholder="Likhein ya scan karein" autocomplete="off"><button class="btn" data-a="nbadd">Add</button><button class="btn g" data-a="nbscan">📷</button></div><div id="nbres"></div><div id="nbl"></div><label>Discount (Rs ya %, jaise 50 ya 5%)</label><input id="nbd" placeholder="0" inputmode="decimal"><label>Payment</label><div class="mode" style="display:flex;gap:6px" id="nbm"></div><div id="nbp"></div><div id="nbs" class="card"></div><p><button class="btn" style="width:100%;font-size:16px;padding:14px" data-a="nbsave">✅ Bill banayein</button></p><p><button class="btn g" data-a="close">Band</button></p>');
 $("nbi").onkeydown=function(e){if(e.key==="Enter"){e.preventDefault();nbAdd()}};
-$("nbi").addEventListener("input",function(e){if(!e.inputType||e.inputType==="insertReplacementText"){var f=ITEMS.filter(function(i){return i.name.toLowerCase()===$("nbi").value.trim().toLowerCase()});if(f.length)nbAdd()}});
+$("nbi").addEventListener("input",nbSug);$("nbi").addEventListener("focus",nbSug);
 nbLines();nbSum()}
+function nbAddId(id){
+var it=ITEMS.filter(function(i){return i.id==id})[0];if(!it)return;
+var x=NB.l.filter(function(l){return l.id==it.id})[0];if(x)x.q+=1;else NB.l.push({id:it.id,n:it.name,q:1,r:LSR[it.id]!=null?LSR[it.id]:""});
+$("nbi").value="";$("nbres").innerHTML="";nbLines();nbSum();$("nbi").focus()}
 function nbAdd(v){
 var q=v!=null?v:$("nbi").value,it=nbFind(q);
-if(!it){alert("Ye item nahi mila: "+q+(v!=null?"\\nItem ke form mein barcode/code likh dein.":""));return}
-var x=NB.l.filter(function(l){return l.id==it.id})[0];if(x)x.q+=1;else NB.l.push({id:it.id,n:it.name,q:1,r:LSR[it.id]!=null?LSR[it.id]:""});
-$("nbi").value="";nbLines();nbSum();$("nbi").focus()}
+if(it)return nbAddId(it.id);
+if(v!=null){alert("Is barcode/code ka item nahi mila: "+v+"\nItem ke form mein barcode likh dein.");return}
+nbSug()}
+function nbSug(){
+var q=$("nbi").value.trim().toLowerCase(),r=ITEMS.filter(function(i){return !q||i.name.toLowerCase().indexOf(q)>-1||(i.code||"").toLowerCase().indexOf(q)>-1||(i.barcode||"").indexOf(q)>-1}).slice(0,8);
+$("nbres").innerHTML=r.length?r.map(function(i){return '<div class="card row" data-a="nbpick" data-id="'+i.id+'" style="padding:8px 12px;margin:4px 0"><span><b>'+esc(i.name)+'</b><div class="mute">'+(i.code?"Code "+esc(i.code)+" · ":"")+"Stock "+(STK[i.id]||0)+'</div></span><b class="grn">+ Add</b></div>'}).join(""):'<p class="mute">Is naam ka koi item nahi mila.</p>'}
 function nbLines(){
 $("nbl").innerHTML=NB.l.map(function(l,i){return '<div class="card"><div class="row"><b>'+esc(l.n)+'</b><button class="btn g" data-a="nbx" data-i="'+i+'">X</button></div><div class="g3" style="grid-template-columns:1fr 1fr 1fr;margin-top:6px"><input type="number" inputmode="decimal" placeholder="Qty" value="'+l.q+'" data-a="nbq" data-i="'+i+'"><input type="number" inputmode="decimal" placeholder="Rate" value="'+l.r+'" data-a="nbr" data-i="'+i+'"><b id="lt'+i+'" style="align-self:center;text-align:right">'+rs((l.q||0)*(l.r||0))+'</b></div><div class="mute">Stock: '+(STK[l.id]||0)+'</div></div>'}).join("");
 $("nbm").innerHTML=[["cash","💵 Cash"],["online","📲 Online"],["credit","📒 Udhaar"]].map(function(m){return '<button class="btn'+(NB.m==m[0]?"":" g")+'" style="flex:1" data-a="nbm" data-v="'+m[0]+'">'+m[1]+'</button>'}).join("");
@@ -526,6 +533,7 @@ ov.querySelector("#scx").onclick=stop;
 function x5(a,d){
 if(a=="nbill")nbOpen();
 else if(a=="nbadd")nbAdd();
+else if(a=="nbpick")nbAddId(+d.id);
 else if(a=="nbscan")nbScan();
 else if(a=="nbx"){NB.l.splice(+d.i,1);nbLines();nbSum()}
 else if(a=="nbm"){NB.m=d.v;nbLines();nbSum()}
