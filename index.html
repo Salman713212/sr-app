@@ -103,7 +103,7 @@ else{h='<div class="row"><h2>Customers ('+CUS.length+')</h2><button class="btn" 
 $("app").innerHTML=h}
 function itemForm(id){
 var i=ITEMS.filter(function(x){return x.id==id})[0]||{name:"",category:"",unit:"box",boxes_per_cotton:1,min_stock:0,code:"",barcode:""};
-modal('<h3>'+(id?"Item badlein":"Naya item")+'</h3><label>Naam</label><input id="f1" value="'+esc(i.name)+'"><label>Item code (jaise 100058)</label><input id="f6" value="'+esc(i.code||"")+'"><label>Barcode (scan karein ya likhein)</label><input id="f7" value="'+esc(i.barcode||"")+'"><label>Category</label><input id="f2" value="'+esc(i.category||"")+'"><label>Unit (box)</label><input id="f3" value="'+esc(i.unit)+'"><label>Cotton mein kitne box</label><input id="f4" type="number" inputmode="numeric" value="'+i.boxes_per_cotton+'"><label>Kam az kam stock (is se kam ho to alert)</label><input id="f5" type="number" inputmode="numeric" value="'+(i.min_stock||0)+'"><p><button class="btn" data-a="itemsave" data-id="'+(id||"")+'">Save</button>'+(id?' <button class="btn r" data-a="itemdel" data-id="'+id+'">Hatayein</button>':"")+' <button class="btn g" data-a="close">Band</button></p>')}
+modal('<h3>'+(id?"Item badlein":"Naya item")+'</h3><label>Naam</label><input id="f1" value="'+esc(i.name)+'"><label>Item code (jaise 100058)</label><input id="f6" value="'+esc(i.code||"")+'"><label>Barcode (scan karein ya likhein)</label><div style="display:flex;gap:6px"><input id="f7" value="'+esc(i.barcode||"")+'"><button class="btn g" data-a="itemscan">📷 Scan</button></div><label>Category</label><input id="f2" value="'+esc(i.category||"")+'"><label>Unit (box)</label><input id="f3" value="'+esc(i.unit)+'"><label>Cotton mein kitne box</label><input id="f4" type="number" inputmode="numeric" value="'+i.boxes_per_cotton+'"><label>Kam az kam stock (is se kam ho to alert)</label><input id="f5" type="number" inputmode="numeric" value="'+(i.min_stock||0)+'"><p><button class="btn" data-a="itemsave" data-id="'+(id||"")+'">Save</button>'+(id?' <button class="btn r" data-a="itemdel" data-id="'+id+'">Hatayein</button>':"")+' <button class="btn g" data-a="close">Band</button></p>')}
 async function itemSave(id){
 var b={name:$("f1").value.trim(),category:$("f2").value.trim()||null,unit:$("f3").value.trim()||"box",boxes_per_cotton:parseInt($("f4").value)||1,min_stock:parseFloat($("f5").value)||0,code:$("f6").value.trim()||null,barcode:$("f7").value.trim()||null};
 if(!b.name)return alert("Naam likhein.");
@@ -521,18 +521,20 @@ await api("POST","sale_lines",rows);
 if(pd>0)await api("POST","customer_payments",{customer_id:cu.id,paid_on:today(),amount:pd,note:"Bill par payment"})}
 catch(e){await api("DELETE","sales?id=eq."+s.id).catch(function(){});throw e}
 await load2();billMake(s.id)}catch(e){err(e)}}
-async function nbScan(){
-if(!("BarcodeDetector" in window))return alert("Is phone/browser mein camera se barcode scan nahi ho sakta. Item ka code likhein, ya barcode scanner istemal karein.");
+async function scanCode(cb){
+if(!("BarcodeDetector" in window))return alert("Is phone/browser mein camera se barcode scan nahi ho sakta. Barcode ke neeche likha number khud likh dein, ya barcode scanner (Bluetooth/USB) istemal karein.");
 var st;try{st=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}})}catch(e){return alert("Camera ki ijazat nahi mili.")}
 var ov=document.createElement("div");ov.style.cssText="position:fixed;inset:0;background:#000;z-index:50;display:flex;flex-direction:column";
-ov.innerHTML='<video autoplay playsinline muted style="flex:1;object-fit:cover"></video><button class="btn r" style="margin:14px;padding:14px" id="scx">Band karein</button>';document.body.appendChild(ov);
+ov.innerHTML='<video autoplay playsinline muted style="flex:1;object-fit:cover"></video><div style="color:#fff;text-align:center;padding:8px">Barcode ko camera ke saamne rakhein</div><button class="btn r" style="margin:14px;padding:14px" id="scx">Band karein</button>';document.body.appendChild(ov);
 var v=ov.querySelector("video");v.srcObject=st;var det=new BarcodeDetector(),on=true;
 function stop(){on=false;st.getTracks().forEach(function(t){t.stop()});ov.remove()}
 ov.querySelector("#scx").onclick=stop;
-(async function loop(){while(on){try{var r=await det.detect(v);if(r.length){var c=r[0].rawValue;stop();nbAdd(c);return}}catch(e){}await new Promise(function(k){setTimeout(k,250)})}})()}
+(async function loop(){while(on){try{var r=await det.detect(v);if(r.length){var c=r[0].rawValue;stop();cb(c);return}}catch(e){}await new Promise(function(k){setTimeout(k,250)})}})()}
+function nbScan(){scanCode(function(c){nbAdd(c)})}
 function x5(a,d){
 if(a=="nbill")nbOpen();
 else if(a=="nbadd")nbAdd();
+else if(a=="itemscan")scanCode(function(c){$("f7").value=c});
 else if(a=="nbpick")nbAddId(+d.id);
 else if(a=="nbscan")nbScan();
 else if(a=="nbx"){NB.l.splice(+d.i,1);nbLines();nbSum()}
