@@ -126,12 +126,12 @@ $("app").innerHTML='<button class="btn g" data-a="back">‹ Wapas</button> <butt
 function payForm(){modal('<h3>Supplier ko adaigi</h3><label>Tareekh</label><input id="f1" type="date" value="'+today()+'"><label>Raqam (Rs)</label><input id="f2" type="number" inputmode="numeric"><label>Note (optional)</label><input id="f3"><p><button class="btn" data-a="paysave">Save</button> <button class="btn g" data-a="close">Band</button></p>')}
 async function paySave(){var m=parseFloat($("f2").value);if(!(m>0))return alert("Raqam likhein.");
 try{await api("POST","supplier_payments",{supplier_id:SD.id,paid_on:$("f1").value,amount:m,note:$("f3").value.trim()||null});closeM();await load2();showSup(SD.id)}catch(e){err(e)}}
-function lineRow(){return '<div class="card pl"><input class="it" data-a="pick" list="itl" placeholder="Item ka naam likhein ya chunein" autocomplete="off"><div class="g3" style="margin-top:6px"><input class="q" type="number" inputmode="decimal" placeholder="Quantity"><input class="r" type="number" inputmode="decimal" placeholder="Rate"><input class="x" type="date" title="Expiry"></div></div>'}
+function lineRow(){return '<div class="card pl"><div style="display:flex;gap:6px"><input class="it" data-a="pick" placeholder="Item ka naam likhein (2-3 lafz bhi chalte hain)" autocomplete="off"><button class="btn g" data-a="rmrow">X</button></div><div class="sg"></div><div class="g3" style="margin-top:6px"><input class="q" type="number" inputmode="decimal" placeholder="Quantity"><input class="r" type="number" inputmode="decimal" placeholder="Rate"><input class="x" type="date" title="Expiry"></div></div>'}
 function purForm(){if(!ITEMS.length)return alert("Pehle Maal tab mein items add karein.");
 modal('<h3>Nayi khareedari</h3><label>Tareekh</label><input id="f1" type="date" value="'+today()+'"><label>Note (optional)</label><input id="f3"><div id="pls">'+lineRow()+'</div><p class="mute">Quantity box mein, rate ek box ka, expiry khali chhor sakte hain.</p><p><button class="btn g" data-a="addline">+ Aur item</button></p><p><button class="btn" data-a="pursave">Save</button> <button class="btn g" data-a="close">Band</button></p>')}
 async function purSave(){
 var ls=[].slice.call(document.querySelectorAll(".pl")).map(function(r){return{item_id:iid(r),qty:parseFloat(r.querySelector(".q").value),rate:parseFloat(r.querySelector(".r").value),exp:r.querySelector(".x").value}}).filter(function(l){return l.item_id||l.qty||l.rate});
-if(!ls.length||ls.some(function(l){return !l.item_id||!(l.qty>0)||!(l.rate>=0)}))return alert("Har line mein item (list se naam chunein), quantity aur rate zaroori hain.");
+if(!ls.length||ls.some(function(l){return !l.item_id||!(l.qty>0)||!(l.rate>=0)}))return alert("Kisi line mein kuch adhoora hai. Har line mein item (neeche list se chunein), quantity aur rate zaroori hain. Galat line ko X se hata dein.");
 var p;
 try{p=(await api("POST","purchases",{supplier_id:SD.id,purchase_date:$("f1").value,note:$("f3").value.trim()||null}))[0];
 try{await api("POST","purchase_lines",ls.map(function(l){return{purchase_id:p.id,item_id:l.item_id,qty:l.qty,rate:l.rate,qty_left:l.qty,expiry_date:l.exp||null}}))}catch(e){await api("DELETE","purchases?id=eq."+p.id).catch(function(){});throw e}
@@ -205,7 +205,7 @@ CD.p.forEach(function(p){ev.push({d:p.paid_on,t:"✔ "+p.paid_on+" wapsi: "+rs(N
 ev.sort(function(x,y){return x.d<y.d?-1:x.d>y.d?1:0});var skip=ev.length>20;ev=ev.slice(-20);
 var m="Assalam o Alaikum "+c.name+",\nGhousia Traders ki taraf se aap ka hisaab:\n\n"+(skip?"(aakhri 20 entries)\n":"")+ev.map(function(x){return x.t}).join("\n")+"\n\nKul udhaar: "+rs(CD.tot)+"\nKul wapsi: "+rs(CD.paid)+"\n*Baqi: "+rs(CD.tot-CD.paid)+"*\n\nShukriya.";
 window.open("https://wa.me/"+d+"?text="+encodeURIComponent(m),"_blank")}
-function sRow(){return '<div class="card pl"><input class="it" data-a="spick" list="itl" placeholder="Item ka naam likhein ya chunein" autocomplete="off"><div class="g3" style="grid-template-columns:1fr 1fr;margin-top:6px"><input class="q" type="number" inputmode="decimal" placeholder="Quantity"><input class="r" type="number" inputmode="decimal" placeholder="Rate"></div><div class="mute hint"></div></div>'}
+function sRow(){return '<div class="card pl"><div style="display:flex;gap:6px"><input class="it" data-a="spick" placeholder="Item ka naam likhein (2-3 lafz bhi chalte hain)" autocomplete="off"><button class="btn g" data-a="rmrow">X</button></div><div class="sg"></div><div class="g3" style="grid-template-columns:1fr 1fr;margin-top:6px"><input class="q" type="number" inputmode="decimal" placeholder="Quantity"><input class="r" type="number" inputmode="decimal" placeholder="Rate"></div><div class="mute hint"></div></div>'}
 function saleForm(c,pre){
 if(!ITEMS.length)return alert("Pehle Maal tab mein items add karein.");SALEC=c||null;EDIT=pre?pre.id:null;EDITQ={};if(pre)pre.lines.forEach(function(l){EDITQ[l.item_id]=(EDITQ[l.item_id]||0)+Number(l.qty)});
 modal('<h3>'+(c?"Udhaar entry":"Walk-in sale (din ka total)")+'</h3><label>Tareekh</label><input id="f1" type="date" value="'+today()+'"><label>Note (optional)</label><input id="f3"><div id="pls">'+sRow()+'</div><p><button class="btn g" data-a="addsrow">+ Aur item</button></p><p class="mute">Ek hi item alag rate par bika ho to alag line likhein.</p><p><button class="btn" data-a="salesave">Save</button> <button class="btn g" data-a="close">Band</button></p>');if(pre)fillSale(pre)}
@@ -218,7 +218,7 @@ if(need>0&&b.length){cost+=need*b[b.length-1].rate;need=0}
 var cov=l.qty-need;return cov>0?cost/cov:null}
 async function saleSave(){
 var ls=[].slice.call(document.querySelectorAll(".pl")).map(function(r){return{item_id:iid(r),qty:parseFloat(r.querySelector(".q").value),rate:parseFloat(r.querySelector(".r").value)}}).filter(function(l){return l.item_id||l.qty||l.rate});
-if(!ls.length||ls.some(function(l){return !l.item_id||!(l.qty>0)||!(l.rate>=0)}))return alert("Har line mein item (list se naam chunein), quantity aur rate zaroori hain.");
+if(!ls.length||ls.some(function(l){return !l.item_id||!(l.qty>0)||!(l.rate>=0)}))return alert("Kisi line mein kuch adhoora hai. Har line mein item (neeche list se chunein), quantity aur rate zaroori hain. Galat line ko X se hata dein.");
 var need={};ls.forEach(function(l){need[l.item_id]=(need[l.item_id]||0)+l.qty});
 var low=Object.keys(need).filter(function(k){return need[k]>((STK[k]||0)+(EDITQ[k]||0))}).map(function(k){return ITEMS.filter(function(i){return i.id==k})[0].name});
 if(low.length&&!confirm("Stock kam hai: "+low.join(", ")+". Phir bhi save karein?"))return;
@@ -472,7 +472,7 @@ function nbFind(q){
 q=(q||"").trim().toLowerCase();if(!q)return null;
 var f=ITEMS.filter(function(i){return (i.code||"").toLowerCase()===q||(i.barcode||"")===q});if(f.length)return f[0];
 f=ITEMS.filter(function(i){return i.name.toLowerCase()===q});if(f.length)return f[0];
-f=ITEMS.filter(function(i){return i.name.toLowerCase().indexOf(q)>-1});return f.length==1?f[0]:null}
+f=ITEMS.filter(function(i){return imatch(i,q)});return f.length==1?f[0]:null}
 function nbOpen(){
 NB={l:[],m:"cash"};
 modal('<h3>🧾 Naya Bill</h3><label>Customer (khali = Walk-in)</label><input id="nbc" list="cusl" placeholder="Walk-in" autocomplete="off"><datalist id="cusl">'+CUS.map(function(c){return '<option value="'+esc(c.name)+'">'}).join("")+'</datalist><label>Item (naam / code / barcode)</label><div style="display:flex;gap:6px"><input id="nbi" placeholder="Likhein ya scan karein" autocomplete="off"><button class="btn" data-a="nbadd">Add</button><button class="btn g" data-a="nbscan">📷</button></div><div id="nbres"></div><div id="nbl"></div><label>Discount (Rs ya %, jaise 50 ya 5%)</label><input id="nbd" placeholder="0" inputmode="decimal"><label>Payment</label><div class="mode" style="display:flex;gap:6px" id="nbm"></div><div id="nbp"></div><div id="nbs" class="card"></div><p><button class="btn" style="width:100%;font-size:16px;padding:14px" data-a="nbsave">✅ Bill banayein</button></p><p><button class="btn g" data-a="close">Band</button></p>');
@@ -489,7 +489,7 @@ if(it)return nbAddId(it.id);
 if(v!=null){alert("Is barcode/code ka item nahi mila: "+v+"\nItem ke form mein barcode likh dein.");return}
 nbSug()}
 function nbSug(){
-var q=$("nbi").value.trim().toLowerCase(),r=ITEMS.filter(function(i){return !q||i.name.toLowerCase().indexOf(q)>-1||(i.code||"").toLowerCase().indexOf(q)>-1||(i.barcode||"").indexOf(q)>-1}).slice(0,8);
+var q=$("nbi").value.trim(),r=ITEMS.filter(function(i){return !q||imatch(i,q)}).slice(0,8);
 $("nbres").innerHTML=r.length?r.map(function(i){return '<div class="card row" data-a="nbpick" data-id="'+i.id+'" style="padding:8px 12px;margin:4px 0"><span><b>'+esc(i.name)+'</b><div class="mute">'+(i.code?"Code "+esc(i.code)+" · ":"")+"Stock "+(STK[i.id]||0)+'</div></span><b class="grn">+ Add</b></div>'}).join(""):'<p class="mute">Is naam ka koi item nahi mila.</p>'}
 function nbLines(){
 $("nbl").innerHTML=NB.l.map(function(l,i){return '<div class="card"><div class="row"><b>'+esc(l.n)+'</b><button class="btn g" data-a="nbx" data-i="'+i+'">X</button></div><div class="g3" style="grid-template-columns:1fr 1fr 1fr;margin-top:6px"><input type="number" inputmode="decimal" placeholder="Qty" value="'+l.q+'" data-a="nbq" data-i="'+i+'"><input type="number" inputmode="decimal" placeholder="Rate" value="'+l.r+'" data-a="nbr" data-i="'+i+'"><b id="lt'+i+'" style="align-self:center;text-align:right">'+rs((l.q||0)*(l.r||0))+'</b></div><div class="mute">Stock: '+(STK[l.id]||0)+'</div></div>'}).join("");
@@ -539,11 +539,23 @@ else if(a=="nbpick")nbAddId(+d.id);
 else if(a=="nbscan")nbScan();
 else if(a=="nbx"){NB.l.splice(+d.i,1);nbLines();nbSum()}
 else if(a=="nbm"){NB.m=d.v;nbLines();nbSum()}
-else if(a=="nbsave")nbSave()}
+else if(a=="nbsave")nbSave();else x6(a,d,b)}
 document.addEventListener("input",function(e){
 var t=e.target,a=t.dataset&&t.dataset.a;
 if(a=="nbq"||a=="nbr"){var l=NB.l[+t.dataset.i];if(a=="nbq")l.q=parseFloat(t.value)||0;else l.r=t.value===""?"":parseFloat(t.value);var el=$("lt"+t.dataset.i);if(el)el.textContent=rs((l.q||0)*(l.r||0));nbSum()}
 else if(t.id=="nbd"||t.id=="nbpaid")nbSum()});
+
+function imatch(i,q){var h=(i.name+" "+(i.code||"")+" "+(i.barcode||"")).toLowerCase();return String(q).toLowerCase().split(/\s+/).filter(Boolean).every(function(w){return h.indexOf(w)>-1})}
+function sgShow(t){
+var p=t.closest(".pl"),box=p&&p.querySelector(".sg");if(!box)return;
+var q=t.value.trim();if(!q||iidv(q)){box.innerHTML="";return}
+var r=ITEMS.filter(function(i){return imatch(i,q)}).slice(0,8);
+box.innerHTML=r.length?r.map(function(i){return '<div class="card row" data-a="sgpick" data-id="'+i.id+'" style="padding:8px 12px;margin:4px 0"><span><b>'+esc(i.name)+'</b><div class="mute">Stock '+(STK[i.id]||0)+'</div></span><b class="grn">Chunein</b></div>'}).join(""):'<p class="mute">Is naam ka koi item nahi mila.</p>'}
+function x6(a,d,b){
+if(a=="sgpick"){var row=b.closest(".pl"),it=ITEMS.filter(function(i){return i.id==d.id})[0],inp=row.querySelector(".it");inp.value=it.name;row.querySelector(".sg").innerHTML="";inp.dispatchEvent(new Event("change",{bubbles:true}));row.querySelector(".q").focus()}
+else if(a=="rmrow"){var p=b.closest(".pl"),bx=p.parentNode,sale=!!p.querySelector('[data-a="spick"]');p.remove();if(!bx.querySelector(".pl"))bx.insertAdjacentHTML("beforeend",sale?sRow():lineRow())}}
+document.addEventListener("input",function(e){var t=e.target;if(t.classList&&t.classList.contains("it"))sgShow(t)});
+document.addEventListener("focusin",function(e){var t=e.target;if(t.classList&&t.classList.contains("it"))sgShow(t)});
 
 boot();
 </script>
