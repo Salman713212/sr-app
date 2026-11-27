@@ -147,7 +147,7 @@ if(!r.ok)throw new Error(j.error_description||j.msg||"Login nahi hua");save(j);b
 document.addEventListener("change",function(e){
 var s=e.target.closest('[data-a="pick"]');if(!s||!SD)return;var l=SD.last[iidv(s.value)],r=s.closest(".pl").querySelector(".r");r.placeholder=l?("Rate (pichla "+l.r+")"):"Rate"});
 document.addEventListener("click",function(e){
-var b=e.target.closest("[data-a]");if(!b)return;var a=b.dataset.a,d=b.dataset;
+var b=e.target.closest("[data-a]");if(!b)return;var a=b.dataset.a,d=b.dataset;LB=b;
 if(a=="login")login();
 else if(a=="logout"){S=null;CUR=null;CC=null;try{localStorage.removeItem("srm")}catch(x){}boot()}
 else if(a=="tab"){T=d.v;CUR=null;CC=null;show()}
@@ -168,7 +168,7 @@ var CC=null,STK={},CB={},SB={},LSR={},CD=null,SALEC=null,RP={m:"d",d:today()};
 function bal(n){return '<span class="'+(n>0?"red":"grn")+'"><b>'+rs(n)+'</b></span>'}
 function srt(x,y){var a=x.purchases.purchase_date,b=y.purchases.purchase_date;return a<b?-1:a>b?1:x.id-y.id}
 async function apiAll(p){var o=[],n=0,r;do{r=await api("GET",p+"&limit=1000&offset="+n);o=o.concat(r);n+=1000}while(r.length==1000);return o}
-var BAT={},RPT="";
+var BAT={},RPT="",LB=null;
 async function load2(){
 var a=await Promise.all([apiAll("purchase_lines?select=id,item_id,purchase_id,qty,rate,expiry_date,items(name),purchases(purchase_date)&order=id"),apiAll("sales?customer_id=not.is.null&select=customer_id,sale_lines(qty,rate)&order=id"),apiAll("customer_payments?select=customer_id,amount&order=id"),apiAll("purchases?select=supplier_id,purchase_lines(qty,rate)&order=id"),apiAll("supplier_payments?select=supplier_id,amount&order=id"),api("GET","sale_lines?select=item_id,rate&order=id.desc&limit=300"),apiAll("sale_lines?select=item_id,qty&order=id")]);
 STK={};CB={};SB={};LSR={};BAT={};EXP=[];
@@ -539,7 +539,7 @@ else if(a=="nbpick")nbAddId(+d.id);
 else if(a=="nbscan")nbScan();
 else if(a=="nbx"){NB.l.splice(+d.i,1);nbLines();nbSum()}
 else if(a=="nbm"){NB.m=d.v;nbLines();nbSum()}
-else if(a=="nbsave")nbSave();else x6(a,d,b)}
+else if(a=="nbsave")nbSave();else x6(a,d,LB)}
 document.addEventListener("input",function(e){
 var t=e.target,a=t.dataset&&t.dataset.a;
 if(a=="nbq"||a=="nbr"){var l=NB.l[+t.dataset.i];if(a=="nbq")l.q=parseFloat(t.value)||0;else l.r=t.value===""?"":parseFloat(t.value);var el=$("lt"+t.dataset.i);if(el)el.textContent=rs((l.q||0)*(l.r||0));nbSum()}
