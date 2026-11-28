@@ -233,7 +233,7 @@ try{await api("DELETE","sales?id=eq."+id);await load2();if(CC)showCusD(CC);else 
 async function showSale(){
 $("app").innerHTML='<p class="mute">Load ho raha hai…</p>';
 try{var r=await api("GET","sales?customer_id=is.null&select=id,sale_date,note,sale_lines(qty,rate,items(name))&order=sale_date.desc,id.desc&limit=40")}catch(e){return err(e)}
-$("app").innerHTML='<div class="row"><h2>Sale / Bill</h2></div><p><button class="btn" style="width:100%;font-size:16px;padding:14px" data-a="nbill">🧾 Naya Bill (tez)</button></p><div class="row"><span class="mute">Raat ko din ka total likhna ho:</span><button class="btn g" data-a="salef" data-c="">+ Din ka total</button></div>'+(r.map(sCard).join("")||'<p class="mute">Abhi koi sale nahi.</p>')}
+$("app").innerHTML='<div class="row"><h2>Sale / Bill</h2></div><p><button class="btn" style="width:100%;font-size:16px;padding:14px" data-a="nbill">🧾 Naya Bill (tez)</button></p>'+(hb()?'<p><button class="btn g" style="width:100%" data-a="nbheld">⏸ Held bills ('+hb()+')</button></p>':"")+'<div class="row"><span class="mute">Raat ko din ka total likhna ho:</span><button class="btn g" data-a="salef" data-c="">+ Din ka total</button></div>'+(r.map(sCard).join("")||'<p class="mute">Abhi koi sale nahi.</p>')}
 async function showExp(){
 $("app").innerHTML='<p class="mute">Load ho raha hai…</p>';var t=today();
 try{var r=await api("GET","expenses?spent_on=gte."+t.slice(0,8)+"01&order=spent_on.desc,id.desc")}catch(e){return err(e)}
@@ -473,12 +473,12 @@ q=(q||"").trim().toLowerCase();if(!q)return null;
 var f=ITEMS.filter(function(i){return (i.code||"").toLowerCase()===q||(i.barcode||"")===q});if(f.length)return f[0];
 f=ITEMS.filter(function(i){return i.name.toLowerCase()===q});if(f.length)return f[0];
 f=ITEMS.filter(function(i){return imatch(i,q)});return f.length==1?f[0]:null}
-function nbOpen(){
-NB={l:[],m:"cash"};
-modal('<h3>🧾 Naya Bill</h3><label>Customer (khali = Walk-in)</label><input id="nbc" list="cusl" placeholder="Walk-in" autocomplete="off"><datalist id="cusl">'+CUS.map(function(c){return '<option value="'+esc(c.name)+'">'}).join("")+'</datalist><label>Item (naam / code / barcode)</label><div style="display:flex;gap:6px"><input id="nbi" placeholder="Likhein ya scan karein" autocomplete="off"><button class="btn" data-a="nbadd">Add</button><button class="btn g" data-a="nbscan">📷</button></div><div id="nbres"></div><div id="nbl"></div><label>Discount (Rs ya %, jaise 50 ya 5%)</label><input id="nbd" placeholder="0" inputmode="decimal"><label>Payment</label><div class="mode" style="display:flex;gap:6px" id="nbm"></div><div id="nbp"></div><div id="nbs" class="card"></div><p><button class="btn" style="width:100%;font-size:16px;padding:14px" data-a="nbsave">✅ Bill banayein</button></p><p><button class="btn g" data-a="close">Band</button></p>');
+function nbOpen(st){
+NB={l:st?st.l:[],m:st?st.m:"cash",hid:st?st.id:null};
+modal('<h3>🧾 Naya Bill</h3><label>Customer (khali = Walk-in)</label><input id="nbc" list="cusl" placeholder="Walk-in" autocomplete="off"><datalist id="cusl">'+CUS.map(function(c){return '<option value="'+esc(c.name)+'">'}).join("")+'</datalist><label>Item (naam / code / barcode)</label><div style="display:flex;gap:6px"><input id="nbi" placeholder="Likhein ya scan karein" autocomplete="off"><button class="btn" data-a="nbadd">Add</button><button class="btn g" data-a="nbscan">📷</button></div><div id="nbres"></div><div id="nbl"></div><label>Discount (Rs ya %, jaise 50 ya 5%)</label><input id="nbd" placeholder="0" inputmode="decimal"><label>Payment</label><div class="mode" style="display:flex;gap:6px" id="nbm"></div><div id="nbp"></div><div id="nbs" class="card"></div><p><button class="btn" style="width:100%;font-size:16px;padding:14px" data-a="nbsave">✅ Bill banayein</button></p><div class="row" style="margin-bottom:8px"><button class="btn g" data-a="nbhold">⏸ Hold karein</button>'+(hb()?'<button class="btn g" data-a="nbheld">▶ Held bills ('+hb()+')</button>':"")+'</div><p><button class="btn g" data-a="close">Band</button></p>');
 $("nbi").onkeydown=function(e){if(e.key==="Enter"){e.preventDefault();nbAdd()}};
 $("nbi").addEventListener("input",nbSug);$("nbi").addEventListener("focus",nbSug);
-nbLines();nbSum()}
+nbLines();if(st){$("nbc").value=st.c||"";$("nbd").value=st.d||"";if($("nbpaid"))$("nbpaid").value=st.paid||""}nbSum()}
 function nbAddId(id){
 var it=ITEMS.filter(function(i){return i.id==id})[0];if(!it)return;
 var x=NB.l.filter(function(l){return l.id==it.id})[0];if(x)x.q+=1;else NB.l.push({id:it.id,n:it.name,q:1,r:LSR[it.id]!=null?LSR[it.id]:""});
@@ -520,7 +520,7 @@ if(d>0)rows.push({sale_id:s.id,item_id:DISC.id,qty:1,rate:-d,cost_rate:0});
 await api("POST","sale_lines",rows);
 if(pd>0)await api("POST","customer_payments",{customer_id:cu.id,paid_on:today(),amount:pd,note:"Bill par payment"})}
 catch(e){await api("DELETE","sales?id=eq."+s.id).catch(function(){});throw e}
-await load2();billMake(s.id)}catch(e){err(e)}}
+if(NB.hid)hbSet(hbGet().filter(function(x){return x.id!=NB.hid}));await load2();billMake(s.id)}catch(e){err(e)}}
 async function scanCode(cb){
 if(!("BarcodeDetector" in window))return alert("Is phone/browser mein camera se barcode scan nahi ho sakta. Barcode ke neeche likha number khud likh dein, ya barcode scanner (Bluetooth/USB) istemal karein.");
 var st;try{st=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}})}catch(e){return alert("Camera ki ijazat nahi mili.")}
@@ -539,7 +539,12 @@ else if(a=="nbpick")nbAddId(+d.id);
 else if(a=="nbscan")nbScan();
 else if(a=="nbx"){NB.l.splice(+d.i,1);nbLines();nbSum()}
 else if(a=="nbm"){NB.m=d.v;nbLines();nbSum()}
-else if(a=="nbsave")nbSave();else x6(a,d,LB)}
+else if(a=="nbsave")nbSave();
+else if(a=="nbhold")nbHold();
+else if(a=="nbheld")nbHeld();
+else if(a=="nbresume"){var hh=hbGet().filter(function(x){return x.id==d.id})[0];if(hh)nbOpen(hh)}
+else if(a=="nbhdel"){if(confirm("Ye held bill hata dein?")){hbSet(hbGet().filter(function(x){return x.id!=d.id}));nbHeld()}}
+else x6(a,d,LB)}
 document.addEventListener("input",function(e){
 var t=e.target,a=t.dataset&&t.dataset.a;
 if(a=="nbq"||a=="nbr"){var l=NB.l[+t.dataset.i];if(a=="nbq")l.q=parseFloat(t.value)||0;else l.r=t.value===""?"":parseFloat(t.value);var el=$("lt"+t.dataset.i);if(el)el.textContent=rs((l.q||0)*(l.r||0));nbSum()}
@@ -556,6 +561,20 @@ if(a=="sgpick"){var row=b.closest(".pl"),it=ITEMS.filter(function(i){return i.id
 else if(a=="rmrow"){var p=b.closest(".pl"),bx=p.parentNode,sale=!!p.querySelector('[data-a="spick"]');p.remove();if(!bx.querySelector(".pl"))bx.insertAdjacentHTML("beforeend",sale?sRow():lineRow())}}
 document.addEventListener("input",function(e){var t=e.target;if(t.classList&&t.classList.contains("it"))sgShow(t)});
 document.addEventListener("focusin",function(e){var t=e.target;if(t.classList&&t.classList.contains("it"))sgShow(t)});
+
+function hbGet(){try{return JSON.parse(localStorage.getItem("srm_hold")||"[]")}catch(e){return[]}}
+function hbSet(a){try{localStorage.setItem("srm_hold",JSON.stringify(a))}catch(e){}}
+function hb(){return hbGet().length}
+function toast(m){var e=document.createElement("div");e.textContent=m;e.style.cssText="position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#222;color:#fff;padding:10px 18px;border-radius:99px;z-index:60;font-weight:700";document.body.appendChild(e);setTimeout(function(){e.remove()},2400)}
+function nbHold(){
+var cn=$("nbc").value.trim();
+if(!NB.l.length&&!cn)return alert("Hold karne ke liye pehle item ya customer likhein.");
+var a=hbGet(),id=NB.hid||Date.now(),st={id:id,c:cn,l:JSON.parse(JSON.stringify(NB.l)),m:NB.m,d:$("nbd").value,paid:$("nbpaid")?$("nbpaid").value:"",t:new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})},f=false;
+a=a.map(function(x){if(x.id==id){f=true;return st}return x});if(!f)a.push(st);
+hbSet(a);toast("Bill hold ho gaya ⏸");nbOpen()}
+function nbHeld(){
+var a=hbGet();
+modal('<h3>⏸ Held bills</h3>'+(a.map(function(h){var tot=h.l.reduce(function(z,l){return z+(l.q||0)*(l.r||0)},0);return '<div class="card"><div class="row"><b>'+esc(h.c||"Walk-in")+'</b><span class="mute">'+esc(h.t||"")+'</span></div><div class="mute">'+h.l.length+' item · '+rs(tot)+'</div><div class="row" style="margin-top:6px"><button class="btn" data-a="nbresume" data-id="'+h.id+'">▶ Chalayein</button><button class="btn g" data-a="nbhdel" data-id="'+h.id+'">🗑 Hatayein</button></div></div>'}).join("")||'<p class="mute">Koi held bill nahi.</p>')+'<p><button class="btn" style="width:100%" data-a="nbill">🧾 Naya Bill</button></p><p><button class="btn g" data-a="close">Band</button></p>')}
 
 boot();
 </script>
